@@ -1,4 +1,4 @@
-## Erpnext Fattura Elettronica ver. 0.0.1
+## ERPNext Fattura Elettronica ver. 0.0.1
 
 App to export electronic invoice as mandated by the Italian Government
 

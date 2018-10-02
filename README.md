@@ -25,7 +25,10 @@ This software will be a Frappe Custom App but can be part of the future Italian 
 ## User Manual
 
 - User will filter Sales Invoices using ERPNext Sales Invoices List;
-- After selecting Sales Invoices, user will click on "Export XML Invoices" and will be able to download the XML file containing the selected invoices;
+- After selecting Sales Invoices, user will click on "Export XML Invoices" and will be able to download the XML files containing the selected invoices;
+- The system will generate one XML files for every customer
+- These files can be used to send electronic invoices to SDI using a service like this:
+https://guide.pec.it/fatturazione-elettronica/menu-carica-fattura/upload-fatture-in-formato-xml.aspx
 
 ## Plan
 

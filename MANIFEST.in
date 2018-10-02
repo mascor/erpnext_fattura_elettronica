@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include erpnext_fattura_elettronica *.css
+recursive-include erpnext_fattura_elettronica *.csv
+recursive-include erpnext_fattura_elettronica *.html
+recursive-include erpnext_fattura_elettronica *.ico
+recursive-include erpnext_fattura_elettronica *.js
+recursive-include erpnext_fattura_elettronica *.json
+recursive-include erpnext_fattura_elettronica *.md
+recursive-include erpnext_fattura_elettronica *.png
+recursive-include erpnext_fattura_elettronica *.py
+recursive-include erpnext_fattura_elettronica *.svg
+recursive-include erpnext_fattura_elettronica *.txt
+recursive-exclude erpnext_fattura_elettronica *.pyc

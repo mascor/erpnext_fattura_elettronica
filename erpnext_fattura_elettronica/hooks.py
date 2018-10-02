@@ -31,6 +31,8 @@ app_license = "GPLv3"
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
+doctype_list_js = { "Sales Invoice" : "public/js/efe_sales_invoice_list.js" }
+
 # Home Pages
 # ----------
 

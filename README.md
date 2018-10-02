@@ -18,12 +18,12 @@ Requirements:
 For details about XML Schema see here:
 http://www.fatturapa.gov.it/export/fatturazione/en/normativa/f-2.htm
 
-The final product can be part of the Italian Localization or a Frappe Custom App
+This software will be a Frappe Custom App but can be part of the future Italian Localization
 
 Plan:
 - From the first week of October we will start to implement it.
-- We will try to complete development before 12th of October
-- Complete test before the end of October
+- We will try to complete development before 12th of October (2018)
+- Complete test before the end of October (2018)
 
 Future implementation:
 This is the first step, an evolution of this process will be the capability to:

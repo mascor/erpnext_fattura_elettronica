@@ -5,11 +5,9 @@ frappe.listview_settings['Sales Invoice'] = {
                 frappe.msgprint(__("Please select at least one Sales Invoice"));
             } else {
                 listview.call_for_selected_items(
-                    "erpnext_fattura_elettronica.fattura_elettronica.generate_xml",
-                    {}
+                    "erpnext_fattura_elettronica.api.generate_xml"
                 );
             }
 		});
-
 	}
 };

@@ -9,6 +9,8 @@ GPLv3
 Reference (document issued by Italian Government):
 https://www.agenziaentrate.gov.it/wps/wcm/connect/a8316033-6124-4667-99d8-ed143dc72c20/Provvedimento_30042018+.pdf?MOD=AJPERES&CACHEID=a8316033-6124-4667-99d8-ed143dc72c20
 
+http://www.fatturapa.gov.it/export/fatturazione/sdi/Specifiche_tecniche_del_formato_FatturaPA_v1.2.1.pdf
+
 ## Requirements
 
 Generate (at the end of the day) a unique XML file that exports all the selected Sales Invoice; The XML file will be complaint to:

@@ -122,3 +122,16 @@ doctype_list_js = { "Sales Invoice" : "public/js/efe_sales_invoice_list.js" }
 # 	"frappe.desk.doctype.event.event.get_events": "erpnext_fattura_elettronica.event.get_events"
 # }
 
+
+fixtures = [
+    {   
+        "dt":"Custom Field", 
+        "filters": [["name", "in", [
+            "Customer Group-efe_is_pa",
+            "Customer-efe_sb_1",
+            "Customer-efe_codicefiscale",
+            "Customer-efe_pec_destinatario",
+            "Customer-efe_codice_destinatario",
+        ]]]
+    },
+]

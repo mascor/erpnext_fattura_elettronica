@@ -122,7 +122,6 @@ doctype_list_js = { "Sales Invoice" : "public/js/efe_sales_invoice_list.js" }
 # 	"frappe.desk.doctype.event.event.get_events": "erpnext_fattura_elettronica.event.get_events"
 # }
 
-
 fixtures = [
     {   
         "dt":"Custom Field", 
@@ -132,6 +131,8 @@ fixtures = [
             "Customer-efe_codicefiscale",
             "Customer-efe_pec_destinatario",
             "Customer-efe_codice_destinatario",
+            "Mode of Payment-efe_code",
+            "Sales Invoice-efe_mode_of_payment"
         ]]]
     },
 ]

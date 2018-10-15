@@ -22,7 +22,21 @@ This software will be a Frappe Custom App but can be part of the future Italian 
 
 ## Setup
 
-- TO BE COMPLETED...
+- bench get-app https://github.com/mascor/erpnext_fattura_elettronica.git
+- bench --site <SITENAME> install-app erpnext_fattura_elettronica
+
+## ERPNext Customization
+
+Doctype updates:
+- Company 
+- Customer Group
+- Customer
+- Sales Invoice
+
+New Doctypes:
+- Regime Fiscale
+- Tipo Documento
+- Natura
 
 ## User Manual
 

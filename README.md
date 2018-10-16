@@ -13,10 +13,21 @@ http://www.fatturapa.gov.it/export/fatturazione/sdi/Specifiche_tecniche_del_form
 
 ## Requirements
 
-Generate (at the end of the day) a unique XML file that exports all the selected Sales Invoice; The XML file will be complaint to:
+At scheduled time the system can genrate email alerts about the documents that must be exported. The user can manage the schelude choose between (1 hour, 2 hour, or a fixed time of the day).
+
+The user will manage the export process using a new form: "EFE XML Export"
+
+In this form the user will be able to select a period and after then can select the Documents to export
+
+The system will generate an XML file for every Customer;
+
+The XML file will be complaint to:
 http://www.fatturapa.gov.it/export/fatturazione/it/normativa/f-2.htm
 and will be tested here:
 http://sdi.fatturapa.gov.it/SdI2FatturaPAWeb/AccediAlServizioAction.do?pagina=controlla_fattura
+
+These files can be used to send electronic invoices to SDI using a service like this:
+https://guide.pec.it/fatturazione-elettronica/menu-carica-fattura/upload-fatture-in-formato-xml.aspx
 
 This software will be a Frappe Custom App but can be part of the future Italian Localization
 
@@ -37,14 +48,6 @@ New Doctypes:
 - Regime Fiscale
 - Tipo Documento
 - Natura
-
-## User Manual
-
-- User will filter Sales Invoices using ERPNext Sales Invoices List;
-- After selecting Sales Invoices, user will click on "Export XML Invoices" and will be able to download the XML files containing the selected invoices;
-- The system will generate one XML files for every customer
-- These files can be used to send electronic invoices to SDI using a service like this:
-https://guide.pec.it/fatturazione-elettronica/menu-carica-fattura/upload-fatture-in-formato-xml.aspx
 
 ## Plan
 

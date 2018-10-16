@@ -38,20 +38,19 @@ def generate_invoice_xml(customer_invoice_set, efe_xml_export_name):
 	customer = customer_invoice_set.get("customer")
 	company = customer_invoice_set.get("company")
 	
-	ET.register_namespace("ns3","FatturaElettronica")
-
 	fattura_elettronica = ET.Element('FatturaElettronica')
 	fattura_elettronica.set("xmlns:ds","http://www.w3.org/2000/09/xmldsig#")
 
 	fattura_header = ET.SubElement(fattura_elettronica, 'FatturaElettronicaHeader')
 	
 	append_dati_trasmissione(fattura_header, customer, company, efe_xml_export_name)
+	append_cedente_prestatore(fattura_header, customer, company, efe_xml_export_name)
 
 	for invoice in customer_invoice_set.get("invoices"):
 		#TODO: Append FatturaBody
 		pass
 
-	rough_string = tostring(fattura_elettronica, 'utf-8')
+	rough_string = ET.tostring(fattura_elettronica, 'utf-8')
 	reparsed = minidom.parseString(rough_string)
 	print(reparsed.toprettyxml(indent="  "))
 
@@ -79,11 +78,11 @@ def append_dati_trasmissione(header, customer, company, efe_xml_export_name):
 	if company.phone_no or company.email:
 		contatti_trasmittente = ET.SubElement(dati_trasmissione, 'ContattiTrasmittente')
 		if company.phone_no:
-			contatti_trasmittente_telefono = ET.SubElement(contatti_trasmittente, 'Telefono')
-			contatti_trasmittente_telefono.text = company.phone_no
+			telefono = ET.SubElement(contatti_trasmittente, 'Telefono')
+			telefono.text = company.phone_no
 		if company.email:
-			contatti_trasmittente_email = ET.SubElement(contatti_trasmittente, 'Email')
-			contatti_trasmittente_email.text = company.email
+			email = ET.SubElement(contatti_trasmittente, 'Email')
+			email.text = company.email
 
 	if customer.efe_pec_destinatario:	
 		pec_destinatario = ET.SubElement(dati_trasmissione, 'PecDestinatario')
@@ -91,10 +90,66 @@ def append_dati_trasmissione(header, customer, company, efe_xml_export_name):
 
 
 def append_cedente_prestatore(header, customer, company, efe_xml_export_name):
-	pass
+	cedente_prestatore = ET.SubElement(header, 'CedentePrestatore')
+	
+	data_anagrafici = ET.SubElement(cedente_prestatore, 'DataAnagrafici')
 
-def append_rappresentante_fiscale(header, customer, company):
-	pass
+	id_fiscale_iva =  ET.SubElement(data_anagrafici, 'IdFiscaleIva')
+	id_paese = ET.SubElement(id_fiscale_iva, 'IdPaese')
+	id_paese.text = "IT"
+	id_codice = ET.SubElement(id_fiscale_iva, 'IdCodice')
+	id_codice.text = company.tax_id
+	
+	if company.efe_codicefiscale:
+		codice_fiscale = ET.SubElement(data_anagrafici, 'CodiceFiscale')
+		codice_fiscale.text = company.efe_codicefiscale
+	
+	anagrafica = ET.SubElement(data_anagrafici, 'Anagrafica')
+	denominazione = ET.SubElement(anagrafica, 'Denominazione')
+	denominazione.text = company.name
+	regime_fiscale = ET.SubElement(anagrafica, 'RegimeFiscale')
+
+	#sede = ET.SubElement(cedente_prestatore, 'Sede')
+	if company.phone_no or company.email or company.fax:
+		contatti = ET.SubElement(cedente_prestatore, 'Contatti')
+		if company.phone_no:
+			telefono = ET.SubElement(contatti, 'Telefono')
+			telefono.text = company.phone_no
+		if company.email:
+			email = ET.SubElement(contatti, 'Email')
+			email.text = company.email
+		if company.fax:
+			fax = ET.SubElement(contatti, 'Fax')
+			fax.text = company.fax
 
 def append_cessionario_committente(header, customer, company):
-	pass
+	cessionario_committente = ET.SubElement(header, 'CessionarioCommittente')
+	
+	data_anagrafici = ET.SubElement(cessionario_committente, 'DataAnagrafici')
+
+	id_fiscale_iva =  ET.SubElement(data_anagrafici, 'IdFiscaleIva')
+	id_paese = ET.SubElement(id_fiscale_iva, 'IdPaese')
+	id_paese.text = "IT"
+	id_codice = ET.SubElement(id_fiscale_iva, 'IdCodice')
+	id_codice.text = customer.tax_id
+	
+	if customer.efe_codicefiscale:
+		codice_fiscale = ET.SubElement(data_anagrafici, 'CodiceFiscale')
+		codice_fiscale.text = customer.efe_codice_fiscale
+	
+	anagrafica = ET.SubElement(data_anagrafici, 'Anagrafica')
+	denominazione = ET.SubElement(anagrafica, 'Denominazione')
+	denominazione.text = customer.customer_name
+
+	#sede = ET.SubElement(cedente_prestatore, 'Sede')
+	if customer.phone_no or customer.email or customer.fax:
+		contatti = ET.SubElement(cessionario_committente, 'Contatti')
+		if customer.phone_no:
+			telefono = ET.SubElement(contatti, 'Telefono')
+			telefono.text = customer.phone_no
+		if customer.email:
+			email = ET.SubElement(contatti, 'Email')
+			email.text = customer.email
+		if customer.fax:
+			fax = ET.SubElement(contatti, 'Fax')
+			fax.text = customer.fax

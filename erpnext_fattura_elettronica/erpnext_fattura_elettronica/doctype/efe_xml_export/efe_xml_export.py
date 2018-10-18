@@ -157,4 +157,44 @@ def append_fattura_body(fattura_elettronica, invoice_data):
 			ET.SubElement(dati_ritenuta, 'TipoRitenuta').text = ritenuta.account_head
 			ET.SubElement(dati_ritenuta, 'ImportoRitenuta').text = ritenuta.account_head
 			ET.SubElement(dati_ritenuta, 'AliquotaRitenuta').text = ritenuta.account_head
-			ET.SubElement(dati_ritenuta, 'CausalePagamento').text = "FATTURA"
+			ET.SubElement(dati_ritenuta, 'CausalePagamento').text = "IVA" #Confirm
+	
+	ET.SubElement(dati_generali_documento, 'ImportoTotaleDocumento').text = str(invoice.grand_total)
+	ET.SubElement(dati_generali_documento, 'Arrotondamento').text = str(invoice.rounded_total) #Confirm
+	ET.SubElement(dati_generali_documento, 'Causale').text = "VENDITA"
+	
+	delivery_notes = frappe.get_all("Delivery Note", 
+		filters=[["Delivery Note Item", "against_sales_invoice", "=", invoice.name]], 
+		fields=["name", "posting_date", "efe_transporter"])
+	
+	if len(delivery_notes):
+		dati_trasporto = ET.SubElement(dati_generali, 'DatiTrasporto')
+		datiDDT = ET.SubElement(dati_generali, 'DatiDDT')
+		for delivery_note in delivery_notes:
+			transporter = frappe.get_doc("Transporter", delivery_note.efe_transporter)
+			ET.SubElement(datiDDT, 'NumeroDDT').text = delivery_note.name
+			ET.SubElement(datiDDT, 'DataDDT').text = str(delivery_note.posting_date)
+			
+			dati_anagrafici_vettore = ET.SubElement(dati_trasporto, 'DatiAnagraficiVettore')
+			id_fiscale_iva = ET.SubElement(dati_anagrafici_vettore, 'IdFiscaleIVA')
+			ET.SubElement(id_fiscale_iva, 'IdPaese').text = "IT"
+			ET.SubElement(id_fiscale_iva, 'IdCodice').text = "???" #Confirm
+			ET.SubElement(dati_anagrafici_vettore, 'CodiceFiscale').text = transporter.tax_id
+			anagrafica = ET.SubElement(dati_anagrafici_vettore, 'Anagrafica')
+			ET.SubElement(anagrafica, 'Denominazione').text = transporter.name
+
+	
+	dati_beni_servizi = ET.SubElement(fattura_elettronica_body, 'DatiBeniServizi')
+	dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DattaglioLinee')
+	
+	for item in invoice.items:
+		ET.SubElement(dettaglio_linee, 'NumeroLinea').text = str(item.idx)
+		ET.SubElement(dettaglio_linee, 'CodiceArticolo').text = item.item_code
+		ET.SubElement(dettaglio_linee, 'Descrizione').text = item.item_name
+		ET.SubElement(dettaglio_linee, 'Quantita').text = str(item.qty)
+		ET.SubElement(dettaglio_linee, 'UnitaMisura').text = item.stock_uom
+		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = str(item.rate)
+		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = str(item.amount)
+		ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = str(item.item_tax_rate)
+		ET.SubElement(dettaglio_linee, 'Natura').text = "???"
+

@@ -157,4 +157,29 @@ def append_fattura_body(fattura_elettronica, invoice_data):
 			ET.SubElement(dati_ritenuta, 'TipoRitenuta').text = ritenuta.account_head
 			ET.SubElement(dati_ritenuta, 'ImportoRitenuta').text = ritenuta.account_head
 			ET.SubElement(dati_ritenuta, 'AliquotaRitenuta').text = ritenuta.account_head
-			ET.SubElement(dati_ritenuta, 'CausalePagamento').text = "FATTURA"
+			ET.SubElement(dati_ritenuta, 'CausalePagamento').text = "IVA" #Confirm
+	
+	ET.SubElement(dati_generali_documento, 'ImportoTotaleDocumento').text = str(invoice.grand_total)
+	ET.SubElement(dati_generali_documento, 'Arrotondamento').text = str(invoice.rounded_total) #Confirm
+	ET.SubElement(dati_generali_documento, 'Causale').text = "VENDITA"
+	
+	delivery_notes = frappe.get_all("Delivery Note", 
+		filters=[["Delivery Note Item", "against_sales_invoice", "=", invoice.name]], 
+		fields=["name", "posting_date", "efe_transporter"])
+	
+	if len(delivery_notes):
+		dati_trasporto = ET.SubElement(dati_generali_documento, 'DatiTrasporto')
+		datiDDT = ET.SubElement(dati_generali, 'DatiDDT')
+		for delivery_note in delivery_notes:
+			transporter = frappe.get_doc("Transporter", delivery_note.efe_transporter)
+			ET.SubElement(datiDDT, 'NumeroDDT').text = delivery_note.name
+			ET.SubElement(datiDDT, 'DataDDT').text = str(delivery_note.date)
+			
+			dati_anagrafici_vettore = ET.SubElement(dati_trasporto, 'DatiAnagraficiVettore')
+			id_fiscale_iva = ET.SubElement(dati_anagrafici_vettore, 'IdFiscaleIVA')
+			ET.SubElement(id_fiscale_iva, 'IdPaese').text = "IT"
+			ET.SubElement(id_fiscale_iva, 'IdCodice').text = "???" #Confirm
+			ET.SubElement(dati_anagrafici_vettore, 'CodiceFiscale').text = transporter.tax_id
+			anagrafica = ET.SubElement(dati_anagrafici_vettore, 'Anagrafica')
+			ET.SubElement(anagrafica, 'Denominazione').text = transporter.name
+

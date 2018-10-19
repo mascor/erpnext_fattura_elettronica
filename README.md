@@ -13,12 +13,10 @@ http://www.fatturapa.gov.it/export/fatturazione/sdi/Specifiche_tecniche_del_form
 
 ## Requirements
 
-At scheduled time the system can genrate email alerts about the documents that must be exported. The user can manage the schelude choose between (1 hour, 2 hour, or a fixed time of the day).
+At scheduled time the system can generate email alerts about the documents that must be exported. The user can manage the schelude choose between (1 hour, 2 hour, or a fixed time of the day).
 
-The user will manage the export process using a new form: "EFE XML Export"
-
-In this form the user will be able to select a period and after then can select the Documents to export
-
+The user will manage the export process using a new doctype: "XML Export"
+In this doctype the user will be able to select a period and after then can select the Documents to export
 The system will generate an XML file for every Customer;
 
 The XML file will be complaint to:
@@ -45,15 +43,17 @@ Doctype updates:
 - Sales Invoice
 
 New Doctypes:
+- XML Export
 - Regime Fiscale
 - Tipo Documento
 - Natura
+- Transporter
 
 ## Plan
 
 - From the first week of October we will start to implement it.
-- We will try to complete development before 12th of October (2018)
-- Complete test before the end of October (2018)
+- Complete development before the end of October (2018)
+- Complete test before the first week of November (2018)
 
 ## Future implementation
 

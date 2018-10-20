@@ -84,16 +84,16 @@ def append_dati_trasmissione(header, customer, company, efe_xml_export_name):
 
 def append_cedente_prestatore(header, customer, company, efe_xml_export_name):
 	cedente_prestatore = ET.SubElement(header, 'CedentePrestatore')
-	data_anagrafici = ET.SubElement(cedente_prestatore, 'DataAnagrafici')
+	dati_anagrafici = ET.SubElement(cedente_prestatore, 'DatiAnagrafici')
 
-	id_fiscale_iva =  ET.SubElement(data_anagrafici, 'IdFiscaleIva')
+	id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIva')
 	ET.SubElement(id_fiscale_iva, 'IdPaese').text = "IT"
 	ET.SubElement(id_fiscale_iva, 'IdCodice').text = company.tax_id
 	
 	if company.efe_codicefiscale:
-		ET.SubElement(data_anagrafici, 'CodiceFiscale').text = company.efe_codicefiscale
+		ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = company.efe_codicefiscale
 	
-	anagrafica = ET.SubElement(data_anagrafici, 'Anagrafica')
+	anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
 	ET.SubElement(anagrafica, 'Denominazione').text = company.name
 	#regime_fiscale = ET.SubElement(anagrafica, 'RegimeFiscale')
 
@@ -110,16 +110,16 @@ def append_cedente_prestatore(header, customer, company, efe_xml_export_name):
 def append_cessionario_committente(header, customer, company):
 	cessionario_committente = ET.SubElement(header, 'CessionarioCommittente')
 	
-	data_anagrafici = ET.SubElement(cessionario_committente, 'DataAnagrafici')
+	dati_anagrafici = ET.SubElement(cessionario_committente, 'DatiAnagrafici')
 
-	id_fiscale_iva =  ET.SubElement(data_anagrafici, 'IdFiscaleIva')
+	id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIva')
 	ET.SubElement(id_fiscale_iva, 'IdPaese').text = "IT"
 	ET.SubElement(id_fiscale_iva, 'IdCodice').text = customer.tax_id
 
 	if customer.efe_codicefiscale:
-		ET.SubElement(data_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
+		ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
 	
-	anagrafica = ET.SubElement(data_anagrafici, 'Anagrafica')
+	anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
 	ET.SubElement(anagrafica, 'Denominazione').text = customer.customer_name
 	
 	#sede = ET.SubElement(cedente_prestatore, 'Sede')
@@ -196,5 +196,4 @@ def append_fattura_body(fattura_elettronica, invoice_data):
 		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = str(item.rate)
 		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = str(item.amount)
 		ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = str(item.item_tax_rate)
-		ET.SubElement(dettaglio_linee, 'Natura').text = "???"
 

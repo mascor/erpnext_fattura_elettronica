@@ -133,7 +133,9 @@ fixtures = [
             "Customer-efe_codice_destinatario",
             "Mode of Payment-efe_code",
             "Sales Invoice-efe_mode_of_payment",
-            "Delivery Note-efe_transporter"
+            "Delivery Note-efe_transporter",
+            "Address-efe_cap",
+            "Address-efe_numero_civico"
         ]]]
     },
 ]

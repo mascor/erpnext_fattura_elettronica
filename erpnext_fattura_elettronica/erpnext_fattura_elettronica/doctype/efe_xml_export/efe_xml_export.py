@@ -6,8 +6,8 @@ from __future__ import unicode_literals
 import frappe
 from frappe.model.document import Document
 from xml.etree import ElementTree as ET
-#from xml.etree.ElementTree import Element, SubElement, Comment, tostring
 from xml.dom import minidom
+from frappe.contacts.doctype.address.address import get_default_address
 
 class EFEXMLExport(Document):
 	def generate_xml_documents(self):
@@ -97,7 +97,15 @@ def append_cedente_prestatore(header, customer, company, efe_xml_export_name):
 	ET.SubElement(anagrafica, 'Denominazione').text = company.name
 	#regime_fiscale = ET.SubElement(anagrafica, 'RegimeFiscale')
 
-	#sede = ET.SubElement(cedente_prestatore, 'Sede')
+	address = frappe.get_doc("Address", get_default_address("Company", company.name))
+	sede = ET.SubElement(cedente_prestatore, 'Sede')
+	ET.SubElement(sede, 'Indirizzo').text = address.address_line1
+	ET.SubElement(sede, 'NumeroCivico').text = address.efe_numero_civico
+	ET.SubElement(sede, 'CAP').text = address.efe_cap
+	ET.SubElement(sede, 'Comune').text = address.county
+	ET.SubElement(sede, 'Provincia').text = address.state
+	ET.SubElement(sede, 'Nazione').text = "IT"
+
 	if company.phone_no or company.email or company.fax:
 		contatti = ET.SubElement(cedente_prestatore, 'Contatti')
 		if company.phone_no:
@@ -122,7 +130,15 @@ def append_cessionario_committente(header, customer, company):
 	anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
 	ET.SubElement(anagrafica, 'Denominazione').text = customer.customer_name
 	
-	#sede = ET.SubElement(cedente_prestatore, 'Sede')
+	address = frappe.get_doc("Address", get_default_address("Company", company.name))
+	sede = ET.SubElement(cessionario_committente, 'Sede')
+	ET.SubElement(sede, 'Indirizzo').text = address.address_line1
+	ET.SubElement(sede, 'NumeroCivico').text = address.efe_numero_civico
+	ET.SubElement(sede, 'CAP').text = address.efe_cap
+	ET.SubElement(sede, 'Comune').text = address.county
+	ET.SubElement(sede, 'Provincia').text = address.state
+	ET.SubElement(sede, 'Nazione').text = "IT"
+
 	if customer.phone_no or customer.email or customer.fax:
 		contatti = ET.SubElement(cessionario_committente, 'Contatti')
 		if customer.phone_no:

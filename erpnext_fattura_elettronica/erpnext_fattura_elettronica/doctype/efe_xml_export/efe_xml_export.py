@@ -8,6 +8,8 @@ from frappe.model.document import Document
 from xml.etree import ElementTree as ET
 from xml.dom import minidom
 from frappe.contacts.doctype.address.address import get_default_address
+from frappe.contacts.doctype.contact.contact import get_default_contact
+import json
 
 class EFEXMLExport(Document):
 	def generate_xml_documents(self):
@@ -45,6 +47,7 @@ def generate_invoice_xml(customer_invoice_set, efe_xml_export_name):
 	
 	append_dati_trasmissione(fattura_header, customer, company, efe_xml_export_name)
 	append_cedente_prestatore(fattura_header, customer, company, efe_xml_export_name)
+	append_cessionario_committente(fattura_header, customer, company)
 
 	for invoice in customer_invoice_set.get("invoices"):
 		#TODO: Append FatturaBody
@@ -124,7 +127,7 @@ def append_cessionario_committente(header, customer, company):
 	ET.SubElement(id_fiscale_iva, 'IdPaese').text = "IT"
 	ET.SubElement(id_fiscale_iva, 'IdCodice').text = customer.tax_id
 
-	if customer.efe_codicefiscale:
+	if customer.efe_codice_fiscale:
 		ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
 	
 	anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
@@ -138,15 +141,18 @@ def append_cessionario_committente(header, customer, company):
 	ET.SubElement(sede, 'Comune').text = address.county
 	ET.SubElement(sede, 'Provincia').text = address.state
 	ET.SubElement(sede, 'Nazione').text = "IT"
-
-	if customer.phone_no or customer.email or customer.fax:
-		contatti = ET.SubElement(cessionario_committente, 'Contatti')
-		if customer.phone_no:
-			ET.SubElement(contatti, 'Telefono').text = customer.phone_no
-		if customer.email:
-			ET.SubElement(contatti, 'Email').text = customer.email
-		if customer.fax:
-			ET.SubElement(contatti, 'Fax').text = customer.fax
+	
+	default_contact_name = get_default_contact("Customer", customer.name)
+	if default_contact_name:
+		contact = frappe.get_doc("Contact", default_contact_name)
+		if (contact.phone or address.phone) or (contact.email_id or address.email_id) or address.fax:
+			contatti = ET.SubElement(cessionario_committente, 'Contatti')
+			if contact.mobile_no:
+				ET.SubElement(contatti, 'Telefono').text = contact.phone or address.phone
+			if contact.email_id or address.email_id:
+				ET.SubElement(contatti, 'Email').text = contact.email_id or address.email_id
+			if address.fax:
+				ET.SubElement(contatti, 'Fax').text = address.fax
 
 def append_fattura_body(fattura_elettronica, invoice_data):
 	invoice = frappe.get_doc("Sales Invoice", invoice_data.name)
@@ -198,12 +204,11 @@ def append_fattura_body(fattura_elettronica, invoice_data):
 			ET.SubElement(dati_anagrafici_vettore, 'CodiceFiscale').text = transporter.tax_id
 			anagrafica = ET.SubElement(dati_anagrafici_vettore, 'Anagrafica')
 			ET.SubElement(anagrafica, 'Denominazione').text = transporter.name
-
 	
 	dati_beni_servizi = ET.SubElement(fattura_elettronica_body, 'DatiBeniServizi')
-	dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DattaglioLinee')
 	
 	for item in invoice.items:
+		dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DattaglioLinee')
 		ET.SubElement(dettaglio_linee, 'NumeroLinea').text = str(item.idx)
 		ET.SubElement(dettaglio_linee, 'CodiceArticolo').text = item.item_code
 		ET.SubElement(dettaglio_linee, 'Descrizione').text = item.item_name
@@ -211,5 +216,37 @@ def append_fattura_body(fattura_elettronica, invoice_data):
 		ET.SubElement(dettaglio_linee, 'UnitaMisura').text = item.stock_uom
 		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = str(item.rate)
 		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = str(item.amount)
-		ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = str(item.item_tax_rate)
+		if item.item_tax_rate and len(json.loads(item.item_tax_rate).values()):
+			ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = str(json.loads(item.item_tax_rate).values()[0])
 
+	append_dati_riepilogo(dati_beni_servizi, invoice)
+
+
+def append_dati_riepilogo(dati_beni_servizi, invoice):
+	from erpnext.controllers.taxes_and_totals import get_itemised_tax
+	#For this to work, please set the following:
+	#1. Add/Find IVA in Chart of Accounts.
+	#2. Set IVA in Item Tax on Item, with the appropriate rate.
+	#3. Sales Taxes and Charges Template for Item Tax, with one line item where:
+	# 	3.1 Tax account is IVA
+	# 	3.3 Tax rate is 0 
+	
+	itemised_taxes = get_itemised_tax(invoice.taxes)
+	
+	out = frappe._dict()
+	for value in itemised_taxes.values():
+		for taxtuple in value.values():
+			if str(taxtuple.tax_rate) in out:
+				out[str(taxtuple.tax_rate)] += taxtuple.tax_amount
+			else:
+				out[str(taxtuple.tax_rate)] = taxtuple.tax_amount
+	print(invoice.name, out)
+	for key in out.keys():
+		dati_riepilogo = ET.SubElement(dati_beni_servizi, 'DatiRiepilogo')
+		ET.SubElement(dati_riepilogo, 'AliquotaIVA').text = key
+		if key == "0.0":
+			ET.SubElement(dati_riepilogo, 'Natura').text = "Insert applicable natura"
+
+		ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = str(out.get(key))
+		ET.SubElement(dati_riepilogo, 'Imposta').text = str(out.get(key))
+		ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = "I"

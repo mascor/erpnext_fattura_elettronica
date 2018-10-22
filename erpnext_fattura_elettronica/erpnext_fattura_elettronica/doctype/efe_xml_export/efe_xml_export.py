@@ -9,6 +9,7 @@ from xml.etree import ElementTree as ET
 from xml.dom import minidom
 from frappe.contacts.doctype.address.address import get_default_address
 from frappe.contacts.doctype.contact.contact import get_default_contact
+from erpnext.controllers.taxes_and_totals import get_itemised_tax
 import json
 
 class EFEXMLExport(Document):
@@ -219,18 +220,14 @@ def append_fattura_body(fattura_elettronica, invoice_data):
 		if item.item_tax_rate and len(json.loads(item.item_tax_rate).values()):
 			ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = str(json.loads(item.item_tax_rate).values()[0])
 
-	append_dati_riepilogo(dati_beni_servizi, invoice)
-
-
-def append_dati_riepilogo(dati_beni_servizi, invoice):
-	from erpnext.controllers.taxes_and_totals import get_itemised_tax
+	### DatiRiepilogo
 	#For this to work, please set the following:
 	#1. Add/Find IVA in Chart of Accounts.
 	#2. Set IVA in Item Tax on Item, with the appropriate rate.
 	#3. Sales Taxes and Charges Template for Item Tax, with one line item where:
 	# 	3.1 Tax account is IVA
 	# 	3.3 Tax rate is 0 
-	
+
 	itemised_taxes = get_itemised_tax(invoice.taxes)
 	
 	out = frappe._dict()
@@ -240,7 +237,7 @@ def append_dati_riepilogo(dati_beni_servizi, invoice):
 				out[str(taxtuple.tax_rate)] += taxtuple.tax_amount
 			else:
 				out[str(taxtuple.tax_rate)] = taxtuple.tax_amount
-	print(invoice.name, out)
+	
 	for key in out.keys():
 		dati_riepilogo = ET.SubElement(dati_beni_servizi, 'DatiRiepilogo')
 		ET.SubElement(dati_riepilogo, 'AliquotaIVA').text = key
@@ -250,3 +247,26 @@ def append_dati_riepilogo(dati_beni_servizi, invoice):
 		ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = str(out.get(key))
 		ET.SubElement(dati_riepilogo, 'Imposta').text = str(out.get(key))
 		ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = "I"
+
+	### DatiPagamento
+	payment_entry_names = frappe.get_all("Payment Entry", 
+		filters=[
+			["Payment Entry Reference", "reference_doctype", "=", "Sales Invoice"], 
+			["Payment Entry Reference", "reference_name", "=", invoice.name]
+		]
+	)
+	print("PENAMES", payment_entry_names)
+	for payment_entry_name in payment_entry_names:
+		payment_entry = frappe.get_doc("Payment Entry Name", payment_entry_name)
+		dati_pagamento = ET.SubElement(fattura_elettronica_body, 'DatiPagamento')
+		ET.SubElement(fattura_elettronica_body, 'CondizionePagamento').text = "TP01" if len(invoice.payment_schedule) > 1 else "TP02"
+		dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DatiPagamento')
+		ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = payment_entry.mode_of_payment
+		ET.SubElement(dettaglio_pagamento, 'DataScadenzaPagamento').text = payment_entry.posting_date
+
+		#Get amount allocated for the specific invoice
+		paid_amount_for_invoice = next(
+			(ref.allocated_amount for ref in payment_entry.references 
+			if ref.reference_doctype == "Sales Invoice" and ref.reference_name == invoice.name)
+		)
+		ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = paid_amount_for_invoice

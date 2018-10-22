@@ -128,7 +128,7 @@ fixtures = [
         "filters": [["name", "in", [
             "Customer Group-efe_is_pa",
             "Customer-efe_sb_1",
-            "Customer-efe_codicefiscale",
+            "Customer-efe_codice_fiscale",
             "Customer-efe_pec_destinatario",
             "Customer-efe_codice_destinatario",
             "Mode of Payment-efe_code",

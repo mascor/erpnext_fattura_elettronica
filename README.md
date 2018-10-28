@@ -1,6 +1,6 @@
 ## ERPNext Fattura Elettronica ver. 0.0.1
 
-App to export electronic invoice as mandated by the Italian Government
+App to export electronic invoices as mandated by the Italian Government
 
 #### License
 
@@ -27,7 +27,7 @@ http://sdi.fatturapa.gov.it/SdI2FatturaPAWeb/AccediAlServizioAction.do?pagina=co
 These files can be used to send electronic invoices to SDI using a service like this:
 https://guide.pec.it/fatturazione-elettronica/menu-carica-fattura/upload-fatture-in-formato-xml.aspx
 
-This software will be a Frappe Custom App but can be part of the future Italian Localization
+This software is a Frappe Custom App but will be part of the Italian Localization
 
 ## Setup
 

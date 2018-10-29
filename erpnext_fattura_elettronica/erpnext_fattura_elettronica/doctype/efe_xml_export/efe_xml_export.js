@@ -6,10 +6,10 @@ frappe.ui.form.on('EFE XML Export', {
 		if (!frm.doc.__islocal) {
 			frm.add_custom_button(__("Export"),() => {
 				frappe.call({
-					method: "generate_xml_documents",
+					method: "generate_electronic_invoices",
 					doc:frm.doc,
 					callback: (r)=>{
-						console.log("generate_xml_document", r);
+						frm.reload_doc();
 					}
 				})
 			});

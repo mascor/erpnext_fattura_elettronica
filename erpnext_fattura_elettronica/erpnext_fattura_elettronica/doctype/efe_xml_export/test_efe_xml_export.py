@@ -12,6 +12,8 @@ def create_data():
 	
 	#Add a company address.
 	company_name = frappe.defaults.get_defaults()["company"]
+	company_abbr = frappe.db.get_value("Company", company_name, "abbr")
+	iva_tax_head = frappe.get_doc("Account", "IVA - ")
 	
 	frappe.get_doc({
 		"doctype": "Address",
@@ -74,10 +76,23 @@ def create_data():
 	# 	3. Second Customer, I1, I2, I3
 	
 	#Create Payment Entry for First Invoice
+	frappe.get_doc({
+		"doctype": "Item",
+		"item_code": "i1",
+		"item_name": "Item One",
+		"item_group": "Products",
+		"is_sales_item": "1",
+		"standard_selling_rate": 100,
+		"taxes": [
+			{
+				"account_head": "IVA",
+				"link_name":"Indoril Nerevar"
+			}
+		] 
+	}).insert()
 
 def remove_data():
 	frappe.delete_doc("Customer", "Mario Rossi")
-	frappe.db.commit()
 	
 class TestEFEXMLExport(unittest.TestCase):
 	def setUp(self):

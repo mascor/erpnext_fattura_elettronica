@@ -5,23 +5,27 @@
 from __future__ import unicode_literals
 import frappe
 from frappe.model.document import Document
-from xml.etree import ElementTree as ET
-from xml.dom import minidom
+from frappe import _
+from lxml import etree as ET
 from frappe.contacts.doctype.address.address import get_default_address
 from frappe.contacts.doctype.contact.contact import get_default_contact
 from erpnext.controllers.taxes_and_totals import get_itemised_tax
-import json
+import json, os
+from frappe.utils.file_manager import save_file
 
+# Variable names used in this doctype are from the italian names.
 class EFEXMLExport(Document):
-	def generate_xml_documents(self):
+	def generate_electronic_invoices(self):
 		filters = {
 			"posting_date": ("between", [self.from_date, self.to_date]),
 			"company": self.company,
 		}
 		customer_invoices = get_customer_invoices(filters)
 
+		export_idx = 1
 		for customer_invoice in customer_invoices:
-			generate_invoice_xml(customer_invoice, self.name) 		
+			generate_electronic_invoice(customer_invoice, self.name, export_idx)
+			export_idx += 1
 
 
 def get_customer_invoices(filters=None):
@@ -37,34 +41,55 @@ def get_customer_invoices(filters=None):
         out.append(out_item)
     return out
 
-def generate_invoice_xml(customer_invoice_set, efe_xml_export_name):
+def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name, export_idx):
+	namespace_map = {
+		"p": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2",
+		"ds": "http://www.w3.org/2000/09/xmldsig#",
+		"xsi": "http://www.w3.org/2001/XMLSchema-instance"
+	}
+
+	schemaLocation="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2 \
+		http://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2/Schema_del_file_xml_FatturaPA_versione_1.2.xsd"
+	
+	ROOT_TAG = "{%s}FatturaElettronica" % namespace_map["p"]
+	SCHEMA_LOCATION_KEY = "{%s}schemaLocation" % namespace_map["xsi"]
+
+	root = ET.Element(ROOT_TAG, 
+		attrib={SCHEMA_LOCATION_KEY : schemaLocation},
+		nsmap=namespace_map,
+		versione="FPR12"
+	)
+
+	invoice_header = ET.SubElement(root, 'FatturaElettronicaHeader')
+	
 	customer = customer_invoice_set.get("customer")
 	company = customer_invoice_set.get("company")
 	
-	fattura_elettronica = ET.Element('FatturaElettronica')
-	fattura_elettronica.set("xmlns:ds","http://www.w3.org/2000/09/xmldsig#")
+	dati_trasmissione = make_transmission_data(customer, company, efe_xml_export_name)
+	invoice_header.append(dati_trasmissione)
 
-	fattura_header = ET.SubElement(fattura_elettronica, 'FatturaElettronicaHeader')
-	
-	append_dati_trasmissione(fattura_header, customer, company, efe_xml_export_name)
-	append_cedente_prestatore(fattura_header, customer, company, efe_xml_export_name)
-	append_cessionario_committente(fattura_header, customer, company)
+	cedente_prestatore = make_company_info(company)
+	invoice_header.append(cedente_prestatore)
+
+	cessionario_committente = make_customer_info(customer)
+	invoice_header.append(cessionario_committente)
 
 	for invoice in customer_invoice_set.get("invoices"):
-		#TODO: Append FatturaBody
-		append_fattura_body(fattura_elettronica, invoice)
+		invoice_body = make_invoice_body(invoice)
+		root.append(invoice_body)
  
+	etree_string = ET.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
 
-	rough_string = ET.tostring(fattura_elettronica, 'utf-8')
-	reparsed = minidom.parseString(rough_string)
-	print(reparsed.toprettyxml(indent="  "))
+	file_name = make_fname(efe_xml_export_name, export_idx)
+	
+	save_file(fname=file_name, content=etree_string, dt="EFE XML Export", dn=efe_xml_export_name)
+		
 
-
-def append_dati_trasmissione(header, customer, company, efe_xml_export_name):
-	dati_trasmissione = ET.SubElement(header, 'DatiTransmissione')
+def make_transmission_data(customer, company, efe_xml_export_name):
+	dati_trasmissione = ET.Element('DatiTransmissione')
 	id_trasmittente = ET.SubElement(dati_trasmissione, 'IdTransmittente')
 	
-	ET.SubElement(id_trasmittente, 'IdPaese').text = "IT"
+	ET.SubElement(id_trasmittente, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 	ET.SubElement(id_trasmittente, 'IdCodice').text = company.tax_id
 	ET.SubElement(dati_trasmissione, 'ProgressivoInvio').text = efe_xml_export_name
 
@@ -84,31 +109,37 @@ def append_dati_trasmissione(header, customer, company, efe_xml_export_name):
 
 	if customer.efe_pec_destinatario:	
 		ET.SubElement(dati_trasmissione, 'PecDestinatario').text = customer.efe_pec_destinatario
+	
+	return dati_trasmissione
 
-
-def append_cedente_prestatore(header, customer, company, efe_xml_export_name):
-	cedente_prestatore = ET.SubElement(header, 'CedentePrestatore')
+def make_company_info(company):
+	cedente_prestatore = ET.Element('CedentePrestatore')
 	dati_anagrafici = ET.SubElement(cedente_prestatore, 'DatiAnagrafici')
 
 	id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIva')
-	ET.SubElement(id_fiscale_iva, 'IdPaese').text = "IT"
+	ET.SubElement(id_fiscale_iva, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 	ET.SubElement(id_fiscale_iva, 'IdCodice').text = company.tax_id
 	
-	if company.efe_codicefiscale:
-		ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = company.efe_codicefiscale
+	if company.efe_codice_fiscale:
+		ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = company.efe_codice_fiscale
 	
 	anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
 	ET.SubElement(anagrafica, 'Denominazione').text = company.name
-	#regime_fiscale = ET.SubElement(anagrafica, 'RegimeFiscale')
+	ET.SubElement(anagrafica, 'RegimeFiscale').text = company.efe_regime_fiscale
 
-	address = frappe.get_doc("Address", get_default_address("Company", company.name))
+
+	#Set Address. Decide mandatory fields.
+	address_name = get_default_address("Company", company.name)
+	if not address_name:
+		frappe.throw(_("Please set address for Company %s" % company.name))
+	address = frappe.get_doc("Address", address_name)
 	sede = ET.SubElement(cedente_prestatore, 'Sede')
 	ET.SubElement(sede, 'Indirizzo').text = address.address_line1
 	ET.SubElement(sede, 'NumeroCivico').text = address.efe_numero_civico
 	ET.SubElement(sede, 'CAP').text = address.efe_cap
 	ET.SubElement(sede, 'Comune').text = address.county
 	ET.SubElement(sede, 'Provincia').text = address.state
-	ET.SubElement(sede, 'Nazione').text = "IT"
+	ET.SubElement(sede, 'Nazione').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 
 	if company.phone_no or company.email or company.fax:
 		contatti = ET.SubElement(cedente_prestatore, 'Contatti')
@@ -118,14 +149,16 @@ def append_cedente_prestatore(header, customer, company, efe_xml_export_name):
 			ET.SubElement(contatti, 'Email').text = company.email
 		if company.fax:
 			ET.SubElement(contatti, 'Fax').text = company.fax
+	
+	return cedente_prestatore
 
-def append_cessionario_committente(header, customer, company):
-	cessionario_committente = ET.SubElement(header, 'CessionarioCommittente')
+def make_customer_info(customer):
+	cessionario_committente = ET.Element('CessionarioCommittente')
 	
 	dati_anagrafici = ET.SubElement(cessionario_committente, 'DatiAnagrafici')
 
 	id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIva')
-	ET.SubElement(id_fiscale_iva, 'IdPaese').text = "IT"
+	ET.SubElement(id_fiscale_iva, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 	ET.SubElement(id_fiscale_iva, 'IdCodice').text = customer.tax_id
 
 	if customer.efe_codice_fiscale:
@@ -134,14 +167,18 @@ def append_cessionario_committente(header, customer, company):
 	anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
 	ET.SubElement(anagrafica, 'Denominazione').text = customer.customer_name
 	
-	address = frappe.get_doc("Address", get_default_address("Company", company.name))
+	address_name = get_default_address("Customer", customer.name)
+	if not address_name:
+		frappe.throw(_("Please set address for customer %s" % customer.name))
+
+	address = frappe.get_doc("Address", address_name)
 	sede = ET.SubElement(cessionario_committente, 'Sede')
 	ET.SubElement(sede, 'Indirizzo').text = address.address_line1
 	ET.SubElement(sede, 'NumeroCivico').text = address.efe_numero_civico
 	ET.SubElement(sede, 'CAP').text = address.efe_cap
 	ET.SubElement(sede, 'Comune').text = address.county
 	ET.SubElement(sede, 'Provincia').text = address.state
-	ET.SubElement(sede, 'Nazione').text = "IT"
+	ET.SubElement(sede, 'Nazione').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 	
 	default_contact_name = get_default_contact("Customer", customer.name)
 	if default_contact_name:
@@ -155,14 +192,19 @@ def append_cessionario_committente(header, customer, company):
 			if address.fax:
 				ET.SubElement(contatti, 'Fax').text = address.fax
 
-def append_fattura_body(fattura_elettronica, invoice_data):
+	return cessionario_committente
+
+def make_invoice_body(invoice_data):
 	invoice = frappe.get_doc("Sales Invoice", invoice_data.name)
 	
-	fattura_elettronica_body = ET.SubElement(fattura_elettronica, 'FatturaElettronicaBody')
+	invoice_body = ET.Element('FatturaElettronicaBody')
 
-	dati_generali = ET.SubElement(fattura_elettronica_body, 'DatiGenerali')
+	dati_generali = ET.SubElement(invoice_body, 'DatiGenerali')
 	dati_generali_documento = ET.SubElement(dati_generali, 'DatiGeneraliDocumento')
-	ET.SubElement(dati_generali_documento, 'TipoDocumento').text = frappe.db.get_value("Tipo Documento", {"counterpart_doctype":"Sales Invoice"}, "code")
+	
+	ET.SubElement(dati_generali_documento, 'TipoDocumento').text = frappe.db.get_value("Tipo Documento", 
+		{"counterpart_doctype":"Sales Invoice"}, "code")
+
 	ET.SubElement(dati_generali_documento, 'Divisa').text = "EUR"
 	ET.SubElement(dati_generali_documento, 'Data').text = str(invoice.posting_date)
 	ET.SubElement(dati_generali_documento, 'Numero').text = invoice.name
@@ -194,19 +236,19 @@ def append_fattura_body(fattura_elettronica, invoice_data):
 		dati_trasporto = ET.SubElement(dati_generali, 'DatiTrasporto')
 		datiDDT = ET.SubElement(dati_generali, 'DatiDDT')
 		for delivery_note in delivery_notes:
-			transporter = frappe.get_doc("Transporter", delivery_note.efe_transporter)
 			ET.SubElement(datiDDT, 'NumeroDDT').text = delivery_note.name
 			ET.SubElement(datiDDT, 'DataDDT').text = str(delivery_note.posting_date)
 			
 			dati_anagrafici_vettore = ET.SubElement(dati_trasporto, 'DatiAnagraficiVettore')
 			id_fiscale_iva = ET.SubElement(dati_anagrafici_vettore, 'IdFiscaleIVA')
-			ET.SubElement(id_fiscale_iva, 'IdPaese').text = "IT"
-			ET.SubElement(id_fiscale_iva, 'IdCodice').text = "???" #Confirm
-			ET.SubElement(dati_anagrafici_vettore, 'CodiceFiscale').text = transporter.tax_id
+			ET.SubElement(id_fiscale_iva, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
+			ET.SubElement(id_fiscale_iva, 'IdCodice').text = delivery_note.efe_transporter_tax_id
+			ET.SubElement(dati_anagrafici_vettore, 'CodiceFiscale').text = delivery_note.efe_transporter_codice_fiscale
+			
 			anagrafica = ET.SubElement(dati_anagrafici_vettore, 'Anagrafica')
-			ET.SubElement(anagrafica, 'Denominazione').text = transporter.name
+			ET.SubElement(anagrafica, 'Denominazione').text = delivery_note.transporter_name
 	
-	dati_beni_servizi = ET.SubElement(fattura_elettronica_body, 'DatiBeniServizi')
+	dati_beni_servizi = ET.SubElement(invoice_body, 'DatiBeniServizi')
 	
 	for item in invoice.items:
 		dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DattaglioLinee')
@@ -230,22 +272,24 @@ def append_fattura_body(fattura_elettronica, invoice_data):
 
 	itemised_taxes = get_itemised_tax(invoice.taxes)
 	
-	out = frappe._dict()
+	vat_percentages = frappe._dict()
 	for value in itemised_taxes.values():
 		for taxtuple in value.values():
-			if str(taxtuple.tax_rate) in out:
-				out[str(taxtuple.tax_rate)] += taxtuple.tax_amount
+			if str(taxtuple.tax_rate) in vat_percentages:
+				vat_percentages[str(taxtuple.tax_rate)] += taxtuple.tax_amount
 			else:
-				out[str(taxtuple.tax_rate)] = taxtuple.tax_amount
+				vat_percentages[str(taxtuple.tax_rate)] = taxtuple.tax_amount
 	
-	for key in out.keys():
+	for key in vat_percentages.keys():
 		dati_riepilogo = ET.SubElement(dati_beni_servizi, 'DatiRiepilogo')
 		ET.SubElement(dati_riepilogo, 'AliquotaIVA').text = key
 		if key == "0.0":
-			ET.SubElement(dati_riepilogo, 'Natura').text = "Insert applicable natura"
+			ET.SubElement(dati_riepilogo, 'Natura').text = ""
 
-		ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = str(out.get(key))
-		ET.SubElement(dati_riepilogo, 'Imposta').text = str(out.get(key))
+		#Can two items with zero tax have different Natura each?
+
+		ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = str(vat_percentages.get(key))
+		ET.SubElement(dati_riepilogo, 'Imposta').text = str(vat_percentages.get(key))
 		ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = "I"
 
 	### DatiPagamento
@@ -255,11 +299,12 @@ def append_fattura_body(fattura_elettronica, invoice_data):
 			["Payment Entry Reference", "reference_name", "=", invoice.name]
 		]
 	)
-	print("PENAMES", payment_entry_names)
+	
 	for payment_entry_name in payment_entry_names:
 		payment_entry = frappe.get_doc("Payment Entry Name", payment_entry_name)
-		dati_pagamento = ET.SubElement(fattura_elettronica_body, 'DatiPagamento')
-		ET.SubElement(fattura_elettronica_body, 'CondizionePagamento').text = "TP01" if len(invoice.payment_schedule) > 1 else "TP02"
+		dati_pagamento = ET.SubElement(invoice_body, 'DatiPagamento')
+		ET.SubElement(invoice_body, 'CondizionePagamento').text = "TP01" if len(invoice.payment_schedule) > 1 else "TP02"
+		
 		dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DatiPagamento')
 		ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = payment_entry.mode_of_payment
 		ET.SubElement(dettaglio_pagamento, 'DataScadenzaPagamento').text = payment_entry.posting_date
@@ -270,3 +315,9 @@ def append_fattura_body(fattura_elettronica, invoice_data):
 			if ref.reference_doctype == "Sales Invoice" and ref.reference_name == invoice.name)
 		)
 		ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = paid_amount_for_invoice
+
+	return invoice_body
+
+def make_fname(efe_xml_export_name, export_idx):
+	country_code = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
+	return "{0}{1}_{2}.xml".format(country_code, efe_xml_export_name, export_idx)

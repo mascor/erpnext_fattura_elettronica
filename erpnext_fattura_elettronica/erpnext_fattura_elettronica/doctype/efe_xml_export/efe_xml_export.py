@@ -12,6 +12,7 @@ from frappe.contacts.doctype.contact.contact import get_default_contact
 from erpnext.controllers.taxes_and_totals import get_itemised_tax
 import json, os
 from frappe.utils.file_manager import save_file
+from frappe.model.naming import make_autoname
 
 # Variable names used in this doctype are from the italian names.
 class EFEXMLExport(Document):
@@ -24,8 +25,11 @@ class EFEXMLExport(Document):
 
 		export_idx = 1
 		for customer_invoice in customer_invoices:
-			generate_electronic_invoice(customer_invoice, self.name, export_idx)
-			export_idx += 1
+			try:
+				generate_electronic_invoice(customer_invoice, self.name, export_idx)
+				export_idx += 1
+			except Exception as ex:
+				print('Exception', ex)
 
 
 def get_customer_invoices(filters=None):
@@ -80,7 +84,7 @@ def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name, expor
  
 	etree_string = ET.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
 
-	file_name = make_fname(efe_xml_export_name, export_idx)
+	file_name = make_fname(efe_xml_export_name, company, export_idx)
 	
 	save_file(fname=file_name, content=etree_string, dt="EFE XML Export", dn=efe_xml_export_name)
 		
@@ -137,7 +141,7 @@ def make_company_info(company):
 	ET.SubElement(sede, 'Indirizzo').text = address.address_line1
 	ET.SubElement(sede, 'NumeroCivico').text = address.efe_numero_civico
 	ET.SubElement(sede, 'CAP').text = address.efe_cap
-	ET.SubElement(sede, 'Comune').text = address.county
+	ET.SubElement(sede, 'Comune').text = address.city
 	ET.SubElement(sede, 'Provincia').text = address.state
 	ET.SubElement(sede, 'Nazione').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 
@@ -176,7 +180,7 @@ def make_customer_info(customer):
 	ET.SubElement(sede, 'Indirizzo').text = address.address_line1
 	ET.SubElement(sede, 'NumeroCivico').text = address.efe_numero_civico
 	ET.SubElement(sede, 'CAP').text = address.efe_cap
-	ET.SubElement(sede, 'Comune').text = address.county
+	ET.SubElement(sede, 'Comune').text = address.city
 	ET.SubElement(sede, 'Provincia').text = address.state
 	ET.SubElement(sede, 'Nazione').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 	
@@ -207,7 +211,7 @@ def make_invoice_body(invoice_data):
 
 	ET.SubElement(dati_generali_documento, 'Divisa').text = "EUR"
 	ET.SubElement(dati_generali_documento, 'Data').text = str(invoice.posting_date)
-	ET.SubElement(dati_generali_documento, 'Numero').text = invoice.name
+	ET.SubElement(dati_generali_documento, 'Numero').text = get_invoice_number(invoice.name)
 	
 	if len(invoice.taxes):
 		bollo = next((tax for tax in invoice.taxes if "bollo" in tax.account_head.lower()), None)
@@ -225,7 +229,7 @@ def make_invoice_body(invoice_data):
 			ET.SubElement(dati_ritenuta, 'CausalePagamento').text = "IVA" #Confirm
 	
 	ET.SubElement(dati_generali_documento, 'ImportoTotaleDocumento').text = str(invoice.grand_total)
-	ET.SubElement(dati_generali_documento, 'Arrotondamento').text = str(invoice.rounded_total) #Confirm
+	#ET.SubElement(dati_generali_documento, 'Arrotondamento').text = str(invoice.rounded_total) #Confirm
 	ET.SubElement(dati_generali_documento, 'Causale').text = "VENDITA"
 	
 	delivery_notes = frappe.get_all("Delivery Note", 
@@ -251,12 +255,14 @@ def make_invoice_body(invoice_data):
 	dati_beni_servizi = ET.SubElement(invoice_body, 'DatiBeniServizi')
 	
 	for item in invoice.items:
-		dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DattaglioLinee')
+		dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DettaglioLinee')
 		ET.SubElement(dettaglio_linee, 'NumeroLinea').text = str(item.idx)
-		ET.SubElement(dettaglio_linee, 'CodiceArticolo').text = item.item_code
+		codice_articolo = ET.SubElement(dettaglio_linee, 'CodiceArticolo')
+		ET.SubElement(codice_articolo, 'CodiceTipo').text = "CODICE"
+		ET.SubElement(codice_articolo, 'CodiceValore').text = item.item_code
 		ET.SubElement(dettaglio_linee, 'Descrizione').text = item.item_name
 		ET.SubElement(dettaglio_linee, 'Quantita').text = str(item.qty)
-		ET.SubElement(dettaglio_linee, 'UnitaMisura').text = item.stock_uom
+		#ET.SubElement(dettaglio_linee, 'UnitaMisura').text = item.stock_uom
 		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = str(item.rate)
 		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = str(item.amount)
 		if item.item_tax_rate and len(json.loads(item.item_tax_rate).values()):
@@ -306,7 +312,7 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(invoice_body, 'CondizionePagamento').text = "TP01" if len(invoice.payment_schedule) > 1 else "TP02"
 		
 		dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DatiPagamento')
-		ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = payment_entry.mode_of_payment
+		ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = frappe.db.get_value("Mode of Payment", payment_entry.mode_of_payment, "efe_code")
 		ET.SubElement(dettaglio_pagamento, 'DataScadenzaPagamento').text = payment_entry.posting_date
 
 		#Get amount allocated for the specific invoice
@@ -314,10 +320,13 @@ def make_invoice_body(invoice_data):
 			(ref.allocated_amount for ref in payment_entry.references 
 			if ref.reference_doctype == "Sales Invoice" and ref.reference_name == invoice.name)
 		)
-		ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = paid_amount_for_invoice
+		ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = str(paid_amount_for_invoice)
 
 	return invoice_body
 
-def make_fname(efe_xml_export_name, export_idx):
+def make_fname(efe_xml_export_name, company, export_idx):
 	country_code = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
-	return "{0}{1}_{2}.xml".format(country_code, efe_xml_export_name, export_idx)
+	return "{0}{1}_{2}.xml".format(country_code, company.tax_id, make_autoname())
+
+def get_invoice_number(invoice_name):
+	return str(int(invoice_name.split("-")[1]))

@@ -32,7 +32,7 @@ This software is a Frappe Custom App but will be part of the Italian Localizatio
 ## Setup
 
 - bench get-app https://github.com/mascor/erpnext_fattura_elettronica.git
-- bench --site <SITENAME> install-app erpnext_fattura_elettronica
+- bench --site SITENAME install-app erpnext_fattura_elettronica
 
 ## ERPNext Customization
 

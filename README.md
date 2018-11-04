@@ -262,6 +262,7 @@ Reference:
   - Mandatory
   - ERPNEXT.DOCTYPE.XXXXX
   - 2.2.1.12 AliquotaIVA
+  - 2.2.2.1 AliquotaIVA
 
 ## Future implementation
 

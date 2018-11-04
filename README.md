@@ -37,7 +37,7 @@ This software is a Frappe Custom App but will be part of the Italian Localizatio
 ## ERPNext Customization
 
 Doctype updates:
-- Company 
+- Company
 - Customer Group
 - Customer
 - Sales Invoice
@@ -54,6 +54,87 @@ New Doctypes:
 - From the first week of October we will start to implement it.
 - Complete development before the end of October (2018)
 - Complete test before the first week of November (2018)
+
+## Implementation
+
+Reference: 
+- http://www.fatturapa.gov.it/export/fatturazione/sdi/Specifiche_tecniche_del_formato_FatturaPA_v1.2.1.pdf
+- http://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2.1/Rappresentazione_tabellare_del_tracciato_FatturaPA_versione_1.2.1.pdf
+
+Company fields
+- Ragione Sociale
+  - Mandatory
+  - ERPNEXT.Company.company_name
+  - 1.2.1.3.1 Denominazione
+- Partita IVA
+  - Mandatory
+  - ERPNEXT.Company.tax_id
+  - 1.1.1.2 IdCodice
+  - 1.2.1.1.2 IdCodice
+- Codice Fiscale
+  - Mandatory
+  - ERPNEXT_EFE.Company.codice_fiscale (Data)
+  - 1.2.1.2 CodiceFiscale
+- Titolo
+  - NOT Mandatory
+  - ERPNEXT_EFE.Company.titolo (Select)
+  - (Avvocato, Dottore, ecc.);
+  - 1.2.1.3.4 Titolo
+- Nome
+  - Mandatory if ERPNEXT_EFE.tipo_soggetto == "Persona fisica"
+  - ERPNEXT_EFE.Company.nome (Data)
+  - 1.2.1.3.2 Nome
+- Cognome
+  - Mandatory if ERPNEXT_EFE.tipo_soggetto == "Persona fisica"
+  - ERPNEXT_EFE.Company.cognome (Data)
+  - 1.2.1.3.3 Cognome
+- Regime Fiscale
+  - Mandatory
+  - ERPNEXT_EFE.Company.RegimeFiscale (Select)
+  - 1.2.1.8 RegimeFiscale
+- Causale
+  - Mandatory
+  - ERPNEXT_EFE.Company.Causale (Select)
+  - 2.1.1.11 Causale
+- Progressivo invio
+  - Mandatory
+  - ERPNEXT_EFE.Company.ProgressivoInvio (Int)
+  - 1.1.2 <ProgressivoInvio
+- Telefono
+  - Mandatory
+  - ERPNEXT.Company.phone_no
+  - 1.1.5.1 Telefono
+  - 1.2.5.1 Telefono
+- Email
+  - Mandatory
+  - ERPNEXT.Company.email
+  - 1.1.5.2 Email
+  - 1.2.5.3 Email
+- Indirizzo
+  - Mandatory
+  - ERPNEXT.Company.Address[0].address_line1
+  - 1.2.2.1 Indirizzo
+- CAP
+  - Mandatory
+  - ERPNEXT.Company.Address[0].pincode
+  - 1.2.2.3 CAP
+- Comune
+  - Mandatory
+  - ERPNEXT.Company.Address[0].city
+  - 1.2.2.4 Comune
+- Provincia
+  - Mandatory
+  - ERPNEXT.Company.Address[0].county
+  - 1.2.2.5 Provincia
+- Nazione
+  - Mandatory
+  - ERPNEXT.Company.Address[0].country
+  - 1.2.2.6 Nazione
+- Fax
+  - Mandatory
+  - ERPNEXT.Company.fax
+  - 1.2.5.2 Fax
+
 
 ## Future implementation
 

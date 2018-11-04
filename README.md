@@ -62,6 +62,7 @@ Reference:
 - http://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2.1/Rappresentazione_tabellare_del_tracciato_FatturaPA_versione_1.2.1.pdf
 
 ###### Company fields
+
 - Ragione Sociale
   - Mandatory
   - ERPNEXT.Company.company_name
@@ -183,6 +184,84 @@ Reference:
   - Mandatory
   - ERPNEXT.Customer.Address[0].country
   - 1.2.2.6 Nazione
+  
+##### Document Fields
+
+- TipoDocumento
+  - Mandatory
+  - ERPNEXT_EFE.tipo_documento
+  - This table will be use to bind ERPNext Document to admitted documents in Fattura Elettronica
+  - 2.1.1.1 TipoDocumento
+- Divisa
+  - CONSTANT = EUR
+  - 2.1.1.2 Divisa
+- Data
+  - Mandatory
+  - ERPNEXT.DOCTYPE.posting_date
+  - 2.1.1.3 Data
+- Numero
+  - Mandatory
+  - ERPNEXT.DOCTYPE.naming_series
+  - This field will be splitted and taken the integer from second token
+  - 2.1.1.4 Numero
+- ImportoTotaleDocumento
+  - Mandatory
+  - ERPNEXT.DOCTYPE.XXXXX
+  - 2.1.1.9 ImportoTotaleDocumento
+- Causale
+  - Mandatory
+  - ERPNEXT_EFE.Company.Causale (Select)
+- Natura
+  - Mandatory
+  - ERPNEXT.DOCTYPE.XXXXX
+  - 2.2.2.2 Natura
+- ImponibileImporto
+  - Mandatory
+  - ERPNEXT.DOCTYPE.XXXXX
+  - 2.2.2.5 ImponibileImporto
+- Imposta
+  - Mandatory
+  - ERPNEXT.DOCTYPE.XXXXX
+  - 2.2.2.6 Imposta
+- EsigibilitaIVA
+  - Mandatory
+  - ERPNEXT.DOCTYPE.XXXXX
+  - 2.2.2.6 EsigibilitaIVA
+
+##### Document Rows Fields
+
+- NumeroLinea
+  - Mandatory
+  - COUNTER
+  - 2.2.1.1 NumeroLinea
+- CodiceTipo
+  - Mandatory
+  - CONSTANT = CODE
+  - 2.2.1.3.1 CodiceTipo
+- CodiceValore  
+  - Mandatory
+  - ERPNEXT.DOCTYPE.XXXXX
+  - 2.2.1.3.2 CodiceValore
+- Descrizione
+  - Mandatory
+  - ERPNEXT.DOCTYPE.XXXXX
+  - 2.2.1.4 Descrizione
+- Quantità
+  - Mandatory
+  - ERPNEXT.DOCTYPE.XXXXX
+  - 2.2.1.5 Quantita
+- PrezzoUnitario
+  - Mandatory
+  - ERPNEXT.DOCTYPE.XXXXX
+  - 2.2.1.9 PrezzoUnitario
+- PrezzoTotale
+  - Mandatory
+  - ERPNEXT.DOCTYPE.XXXXX
+  - 2.2.1.11 PrezzoTotale
+- AliquotaIVA
+  - Mandatory
+  - ERPNEXT.DOCTYPE.XXXXX
+  - 2.2.1.12 AliquotaIVA
 
 ## Future implementation
 

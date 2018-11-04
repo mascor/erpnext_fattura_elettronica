@@ -61,7 +61,7 @@ Reference:
 - http://www.fatturapa.gov.it/export/fatturazione/sdi/Specifiche_tecniche_del_formato_FatturaPA_v1.2.1.pdf
 - http://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2.1/Rappresentazione_tabellare_del_tracciato_FatturaPA_versione_1.2.1.pdf
 
-Company fields
+###### Company fields
 - Ragione Sociale
   - Mandatory
   - ERPNEXT.Company.company_name
@@ -134,7 +134,55 @@ Company fields
   - Mandatory
   - ERPNEXT.Company.fax
   - 1.2.5.2 Fax
+  
+###### Customer Fields
 
+- Codice Destinatario
+  - Mandatory
+  - ERPNEXT_EFE.Customer.codicedestinatario
+  - Default: 0000000 if Company
+  - 1.1.4 CodiceDestinatario
+- PEC Destinatario
+  - Mandatory if ERPNEXT_EFE.Customer.codicedestinatario == “0000000”
+  - ERPNEXT_EFE.Customer.pecdestinatario
+  - 1.1.6 PECDestinatario
+- Partita IVA
+  - Mandatory
+  - ERPNEXT.Customer.tax_id
+  - 1.2.1.1.2 IdCodice
+- Codice Fiscale
+  - ERPNEXT_EFE.Customer.codicefiscale
+  - 1.2.1.2 CodiceFiscale
+- Denominazione
+  - Mandatory
+  - ERPNEXT.Customer.customer_name
+  - 1.4.1.3.1 Denominazione
+- Nome
+  - ERPNEXT_EFE.Customer.nome
+  - 1.4.1.3.2 Nome
+- Cognome
+  - ERPNEXT_EFE.Customer.cognome
+  - 1.4.1.3.2 Cognome
+- Indirizzo
+  - Mandatory
+  - ERPNEXT.Customer.Address[0].address_line1
+  - 1.2.2.1 Indirizzo
+- CAP
+  - Mandatory
+  - ERPNEXT.Customer.Address[0].pincode
+  - 1.2.2.3 CAP
+- Comune
+  - Mandatory
+  - ERPNEXT.Customer.Address[0].city
+  - 1.2.2.4 Comune
+- Provincia
+  - Mandatory
+  - ERPNEXT.Customer.Address[0].county
+  - 1.2.2.5 Provincia
+- Nazione
+  - Mandatory
+  - ERPNEXT.Customer.Address[0].country
+  - 1.2.2.6 Nazione
 
 ## Future implementation
 

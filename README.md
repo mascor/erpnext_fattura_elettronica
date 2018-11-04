@@ -51,9 +51,8 @@ New Doctypes:
 
 ## Plan
 
-- From the first week of October we will start to implement it.
-- Complete development before the end of October (2018)
-- Complete test before the first week of November (2018)
+- Complete development before the second week of November (2018)
+- Complete test before the last week of November (2018)
 
 ## Implementation
 
@@ -217,6 +216,10 @@ Reference:
   - Mandatory: ERPNEXT.DOCTYPE.XXXXX
   - 2.2.1.12 AliquotaIVA
   - 2.2.2.1 AliquotaIVA
+  
+**TO BE COMPLETED: 2.4.1 CondizioniPagamento**
+
+**TO BE COMPLETED: 2.4.2 DettaglioPagamento**
 
 ## Future implementation
 

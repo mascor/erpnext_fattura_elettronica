@@ -221,6 +221,8 @@ Reference:
 
 **TO BE COMPLETED: 2.4.2 DettaglioPagamento**
 
+**ACTUAL DEVELOPMENT BRANCH: electronic-invoice-lxml**
+
 ## Future implementation
 
 An evolution of this process will be the capability to:

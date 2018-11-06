@@ -23,11 +23,9 @@ class EFEXMLExport(Document):
 		}
 		customer_invoices = get_customer_invoices(filters)
 
-		export_idx = 1
 		for customer_invoice in customer_invoices:
 			try:
-				generate_electronic_invoice(customer_invoice, self.name, export_idx)
-				export_idx += 1
+				generate_electronic_invoice(customer_invoice, self.name)
 			except Exception as ex:
 				print('Exception', ex)
 
@@ -45,7 +43,7 @@ def get_customer_invoices(filters=None):
         out.append(out_item)
     return out
 
-def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name, export_idx):
+def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name):
 	namespace_map = {
 		"p": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2",
 		"ds": "http://www.w3.org/2000/09/xmldsig#",
@@ -83,7 +81,7 @@ def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name, expor
  
 	etree_string = ET.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
 
-	file_name = make_fname(efe_xml_export_name, company, export_idx)
+	file_name = make_fname(efe_xml_export_name, company)
 	
 	save_file(fname=file_name, content=etree_string, dt="EFE XML Export", dn=efe_xml_export_name)
 		
@@ -220,7 +218,6 @@ def make_invoice_body(invoice_data):
 
 		if bollo:
 			dati_bollo = ET.SubElement(dati_generali_documento, 'DatiBollo')
-			ET.SubElement(dati_bollo, 'BolloVirtuale').text = "SI"
 			ET.SubElement(dati_bollo, 'ImportoBollo').text = format_float(bollo.tax_amount)
 		if ritenuta:
 			dati_ritenuta = ET.SubElement(dati_generali_documento, 'DatiRitenuta')
@@ -230,7 +227,6 @@ def make_invoice_body(invoice_data):
 			ET.SubElement(dati_ritenuta, 'CausalePagamento').text = "IVA" #Confirm
 	
 	ET.SubElement(dati_generali_documento, 'ImportoTotaleDocumento').text = format_float(invoice.grand_total)
-	#ET.SubElement(dati_generali_documento, 'Arrotondamento').text = format_float(invoice.rounded_total) #Confirm
 	ET.SubElement(dati_generali_documento, 'Causale').text = "VENDITA" #CAUSALE as select field
 	
 	delivery_notes = frappe.get_all("Delivery Note", 
@@ -263,12 +259,16 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(codice_articolo, 'CodiceValore').text = item.item_code
 		ET.SubElement(dettaglio_linee, 'Descrizione').text = item.item_name
 		ET.SubElement(dettaglio_linee, 'Quantita').text = format_float(item.qty) 
-		#ET.SubElement(dettaglio_linee, 'UnitaMisura').text = item.stock_uom
 		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(item.rate)
 		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(item.amount)
-		if item.item_tax_rate and len(json.loads(item.item_tax_rate).values()):
-			ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = format_float(json.loads(item.item_tax_rate).values()[0])
-
+		if item.item_tax_rate:
+			item_tax_rate = json.loads(item.item_tax_rate)
+			print(item.item_code, item_tax_rate.keys()[0])
+			if len(item_tax_rate.values()):
+				ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = format_float(item_tax_rate.values()[0])
+				if item_tax_rate.values()[0] == 0.0:
+					ET.SubElement(dettaglio_linee, 'Natura').text = frappe.db.get_value("Account", item_tax_rate.keys()[0], "efe_natura")
+	
 	### DatiRiepilogo
 	#For this to work, please set the following:
 	#1. Add/Find IVA in Chart of Accounts.
@@ -277,36 +277,17 @@ def make_invoice_body(invoice_data):
 	# 	3.1 Tax account is IVA
 	# 	3.3 Tax rate is 0 
 
-	# itemised_taxes = get_itemised_tax(invoice.taxes)
-	
-	# vat_percentages = frappe._dict()
-	# for value in itemised_taxes.values():
-	# 	for taxtuple in value.values():
-	# 		if format_float(taxtuple.tax_rate) in vat_percentages:
-	# 			vat_percentages.setdefault(format_float(taxtuple.tax_rate), 0.0)
-	# 			vat_percentages[format_float(taxtuple.tax_rate)] += taxtuple.tax_amount #Imposta total.
-	
-	# for key in vat_percentages.keys():
-	# 	dati_riepilogo = ET.SubElement(dati_beni_servizi, 'DatiRiepilogo')
-	# 	ET.SubElement(dati_riepilogo, 'AliquotaIVA').text = key
-	# 	if key == "0.00":
-	# 		ET.SubElement(dati_riepilogo, 'Natura').text = "Natura"
-
-	# 	#Can two items with zero tax have different Natura each?
-	# 	ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = format_float(vat_percentages.get(key))
-	# 	ET.SubElement(dati_riepilogo, 'Imposta').text = format_float(vat_percentages.get(key))
-	# 	ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = "I"
-
 	taxable_amounts = get_taxable_amounts_by_tax_rate(invoice.items)
 	for tax in invoice.taxes:
+	
 		dati_riepilogo = ET.SubElement(dati_beni_servizi, 'DatiRiepilogo')
 		
-		tax_rate = frappe.db.get_value("Account", tax.account_head, "tax_rate")
+		tax_rate, efe_natura = frappe.db.get_value("Account", tax.account_head, ["tax_rate", "efe_natura"])
 
 		if str(tax_rate) in taxable_amounts:
 			ET.SubElement(dati_riepilogo, 'AliquotaIVA').text = format_float(tax_rate)
 			if tax_rate == 0.0:
-				ET.SubElement(dati_riepilogo, 'Natura').text = tax.efe_natura
+				ET.SubElement(dati_riepilogo, 'Natura').text = efe_natura
 
 			ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = format_float(taxable_amounts[str(tax_rate)])
 			ET.SubElement(dati_riepilogo, 'Imposta').text = format_float(tax.tax_amount)
@@ -338,7 +319,7 @@ def make_invoice_body(invoice_data):
 
 	return invoice_body
 
-def make_fname(efe_xml_export_name, company, export_idx):
+def make_fname(efe_xml_export_name, company):
 	country_code = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 	return "{0}{1}_{2}.xml".format(country_code, company.tax_id, make_autoname())
 
@@ -356,5 +337,5 @@ def get_taxable_amounts_by_tax_rate(items):
 		tax_rate_key = str(item_tax.values()[0])
 		taxable_amounts_by_rate.setdefault(tax_rate_key, 0.0)
 		taxable_amounts_by_rate[tax_rate_key] += item.net_amount
-	print(taxable_amounts_by_rate)
+
 	return taxable_amounts_by_rate

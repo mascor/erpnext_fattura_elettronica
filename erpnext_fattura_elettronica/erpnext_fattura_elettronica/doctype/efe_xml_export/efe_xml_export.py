@@ -302,13 +302,15 @@ def make_invoice_body(invoice_data):
 		dati_riepilogo = ET.SubElement(dati_beni_servizi, 'DatiRiepilogo')
 		
 		tax_rate = frappe.db.get_value("Account", tax.account_head, "tax_rate")
-		ET.SubElement(dati_riepilogo, 'AliquotaIVA').text = format_float(tax_rate)
-		if tax_rate == 0.0:
-			ET.SubElement(dati_riepilogo, 'Natura').text = tax.efe_natura
 
-		ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = format_float(taxable_amounts[str(tax_rate)])
-		ET.SubElement(dati_riepilogo, 'Imposta').text = format_float(tax.tax_amount)
-		ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = "I"
+		if str(tax_rate) in taxable_amounts:
+			ET.SubElement(dati_riepilogo, 'AliquotaIVA').text = format_float(tax_rate)
+			if tax_rate == 0.0:
+				ET.SubElement(dati_riepilogo, 'Natura').text = tax.efe_natura
+
+			ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = format_float(taxable_amounts[str(tax_rate)])
+			ET.SubElement(dati_riepilogo, 'Imposta').text = format_float(tax.tax_amount)
+			ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = "I"
 
 	### DatiPagamento
 	payment_entry_names = frappe.get_all("Payment Entry", 
@@ -354,4 +356,5 @@ def get_taxable_amounts_by_tax_rate(items):
 		tax_rate_key = str(item_tax.values()[0])
 		taxable_amounts_by_rate.setdefault(tax_rate_key, 0.0)
 		taxable_amounts_by_rate[tax_rate_key] += item.net_amount
+	print(taxable_amounts_by_rate)
 	return taxable_amounts_by_rate

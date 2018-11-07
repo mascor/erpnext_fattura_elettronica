@@ -1,7 +1,7 @@
 {
  "allow_copy": 0, 
  "allow_guest_to_view": 0, 
- "allow_import": 0, 
+ "allow_import": 1, 
  "allow_rename": 0, 
  "autoname": "field:code", 
  "beta": 0, 
@@ -115,7 +115,7 @@
  "issingle": 0, 
  "istable": 0, 
  "max_attachments": 0, 
- "modified": "2018-10-13 13:07:00.434828", 
+ "modified": "2018-11-06 18:06:34.763189", 
  "modified_by": "Administrator", 
  "module": "Erpnext Fattura Elettronica", 
  "name": "Tipo Documento", 

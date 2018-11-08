@@ -32,6 +32,7 @@ def insert_tipo_documento():
     frappe.get_doc({"doctype": "Tipo Documento", "code": "TD01", "description": "fattura", "counterpart_doctype":"Sales Invoice"}).insert()
 
 def insert_regime_fiscale():
+    frappe.get_doc({"doctype": "Regime Fiscale", "code": "RF01", "description": "Ordinario"}).insert()
     frappe.get_doc({"doctype": "Regime Fiscale", "code": "RF02", "description": "Contribuenti minimi (art.1, c.96-117, L. 244/07)"}).insert()
     frappe.get_doc({"doctype": "Regime Fiscale", "code": "RF04", "description": "Agricoltura e attività connesse e pesca (artt.34 e 34-bis, DPR 633/72)"}).insert()
     frappe.get_doc({"doctype": "Regime Fiscale", "code": "RF05", "description": "Vendita sali e tabacchi (art.74, c.1, DPR. 633/72)"}).insert()

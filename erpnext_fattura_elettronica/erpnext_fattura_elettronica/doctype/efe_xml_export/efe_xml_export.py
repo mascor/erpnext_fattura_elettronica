@@ -231,7 +231,7 @@ def make_invoice_body(invoice_data):
 	
 	delivery_notes = frappe.get_all("Delivery Note", 
 		filters=[["Delivery Note Item", "against_sales_invoice", "=", invoice.name]], 
-		fields=["name", "posting_date", "efe_transporter"])
+		fields=["name", "posting_date", "efe_transporter_tax_id", "efe_transporter_codice_fiscale"])
 	
 	if len(delivery_notes):
 		dati_trasporto = ET.SubElement(dati_generali, 'DatiTrasporto')

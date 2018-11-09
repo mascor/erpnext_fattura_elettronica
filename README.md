@@ -30,9 +30,20 @@ https://guide.pec.it/fatturazione-elettronica/menu-carica-fattura/upload-fatture
 This software is a Frappe Custom App but will be part of the Italian Localization
 
 ## Setup
-
-- bench get-app https://github.com/mascor/erpnext_fattura_elettronica.git
+- bench new-site SITENAME --install-app erpnext
+- bench get-app --branch develop https://github.com/mascor/erpnext_fattura_elettronica.git
 - bench --site SITENAME install-app erpnext_fattura_elettronica
+
+##### Company Setup:
+- Set Tax ID (Partita IVA)
+- Set Regime Fiscale
+- Set Company Address (Street, 
+
+##### Customers Setup:
+- 
+
+##### Sales Invoices Setup:
+- 
 
 ## ERPNext Customization
 

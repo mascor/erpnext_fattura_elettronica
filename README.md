@@ -30,21 +30,49 @@ https://guide.pec.it/fatturazione-elettronica/menu-carica-fattura/upload-fatture
 This software is a Frappe Custom App but will be part of the Italian Localization
 
 ## Setup
+
 - bench new-site SITENAME --install-app erpnext
 - bench get-app --branch develop https://github.com/mascor/erpnext_fattura_elettronica.git
 - bench --site SITENAME install-app erpnext_fattura_elettronica
 
 ##### Company Setup:
+
 - Set Tax ID (Partita IVA)
 - Set Regime Fiscale
-![alt text](https://drive.google.com/open?id=1tzWt69l7qr_l6V6ObSNGxLLZzj-WoDd4)
-- Set Company Address (Street, 
+- Set Company Address (Address Line 1, City/ Town, State (Provincia), Pincode (CAP)) 
+
+##### Chart of accounts Setup:
+
+If you need to use other kind of taxes, different from 22%, you can add it and specify the reason in Natura on the account form:
+- Find Duties and taxes and add a child:
+  - Account Name: VAT 0
+  - Account Type: Tax
+  - Tax Rate: 0
+- Save it and Edit the new account and set Natura
+- Create a new Sales Taxes and charges template using this new account
 
 ##### Customers Setup:
-- 
+
+- Codice Destinatario (by default 0000000)
+- if Codice Destinario is 0000000, PEC Destinatario is mandatory
+- Tax ID (Partita IVA)
+- Set Customer Address (Address Line 1, City/ Town, State (Provincia), Pincode (CAP))
+
+##### Items Setup:
+
+- Create some Items, optionally setting the in the Item Tax section, a different Tax Account instead 22%
 
 ##### Sales Invoices Setup:
-- 
+
+- Customer
+- Insert some Items
+
+##### EFE XML Export:
+
+- Company
+- From Date
+- To Date
+Export
 
 ## ERPNext Customization
 

@@ -20,6 +20,7 @@ class EFEXMLExport(Document):
 		filters = {
 			"posting_date": ("between", [self.from_date, self.to_date]),
 			"company": self.company,
+			"docstatus": 1
 		}
 		customer_invoices = get_customer_invoices(filters)
 
@@ -250,7 +251,9 @@ def make_invoice_body(invoice_data):
 			ET.SubElement(anagrafica, 'Denominazione').text = delivery_note.transporter_name
 	
 	dati_beni_servizi = ET.SubElement(invoice_body, 'DatiBeniServizi')
-	
+
+	itemised_tax = get_itemised_tax(invoice.taxes)
+
 	for item in invoice.items:
 		dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DettaglioLinee')
 		ET.SubElement(dettaglio_linee, 'NumeroLinea').text = str(item.idx)
@@ -261,22 +264,16 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(dettaglio_linee, 'Quantita').text = format_float(item.qty) 
 		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(item.rate)
 		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(item.amount)
-		if json.loads(item.item_tax_rate) != {}:
-			item_tax_rate = json.loads(item.item_tax_rate)
-			if len(item_tax_rate.values()):
-				ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = format_float(item_tax_rate.values()[0])
-				if item_tax_rate.values()[0] == 0.0:
-					ET.SubElement(dettaglio_linee, 'Natura').text = frappe.db.get_value("Account", item_tax_rate.keys()[0], "efe_natura")
+		
+		tax_rate = sum([tax.get('tax_rate', 0) for d, tax in itemised_tax.get(item.item_code).items()])
+
+		ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = format_float(tax_rate)
+		if tax_rate == 0.0:
+			ET.SubElement(dettaglio_linee, 'Natura').text = frappe.db.get_value("Account", item_tax_rate.keys()[0], "efe_natura")
 	
 	### DatiRiepilogo
-	#For this to work, please set the following:
-	#1. Add/Find IVA in Chart of Accounts.
-	#2. Set IVA in Item Tax on Item, with the appropriate rate.
-	#3. Sales Taxes and Charges Template for Item Tax, with one line item where:
-	# 	3.1 Tax account is IVA
-	# 	3.3 Tax rate is 0 
+	# Must have different Accounts in chart of accounts for different tax rates (e.g. VAT 22, VAT 0)
 
-	#taxable_amounts = get_taxable_amounts_by_tax_rate(invoice.items)
 	for tax in invoice.taxes:
 		dati_riepilogo = ET.SubElement(dati_beni_servizi, 'DatiRiepilogo')
 		
@@ -328,14 +325,3 @@ def get_number_from_name(doc_name):
 
 def format_float(float_number):
 	return "%.2f" % float_number
-
-def get_taxable_amounts_by_tax_rate(items, tax_rate=None):
-	taxable_amounts_by_rate = frappe._dict()
-	for item in items:
-		item_tax = json.loads(item.item_tax_rate)
-		if item_tax != {}:
-			tax_rate_key = str(item_tax.values()[0])
-			taxable_amounts_by_rate.setdefault(tax_rate_key, 0.0)
-			taxable_amounts_by_rate[tax_rate_key] += item.net_amount
-
-	return taxable_amounts_by_rate

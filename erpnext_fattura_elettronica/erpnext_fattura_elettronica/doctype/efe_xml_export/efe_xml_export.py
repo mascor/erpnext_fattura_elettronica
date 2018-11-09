@@ -261,9 +261,8 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(dettaglio_linee, 'Quantita').text = format_float(item.qty) 
 		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(item.rate)
 		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(item.amount)
-		if item.item_tax_rate:
+		if json.loads(item.item_tax_rate) != {}:
 			item_tax_rate = json.loads(item.item_tax_rate)
-			print(item.item_code, item_tax_rate.keys()[0])
 			if len(item_tax_rate.values()):
 				ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = format_float(item_tax_rate.values()[0])
 				if item_tax_rate.values()[0] == 0.0:
@@ -277,21 +276,22 @@ def make_invoice_body(invoice_data):
 	# 	3.1 Tax account is IVA
 	# 	3.3 Tax rate is 0 
 
-	taxable_amounts = get_taxable_amounts_by_tax_rate(invoice.items)
+	#taxable_amounts = get_taxable_amounts_by_tax_rate(invoice.items)
 	for tax in invoice.taxes:
-	
 		dati_riepilogo = ET.SubElement(dati_beni_servizi, 'DatiRiepilogo')
 		
 		tax_rate, efe_natura = frappe.db.get_value("Account", tax.account_head, ["tax_rate", "efe_natura"])
 
-		if str(tax_rate) in taxable_amounts:
-			ET.SubElement(dati_riepilogo, 'AliquotaIVA').text = format_float(tax_rate)
-			if tax_rate == 0.0:
-				ET.SubElement(dati_riepilogo, 'Natura').text = efe_natura
-
-			ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = format_float(taxable_amounts[str(tax_rate)])
-			ET.SubElement(dati_riepilogo, 'Imposta').text = format_float(tax.tax_amount)
-			ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = "I"
+		ET.SubElement(dati_riepilogo, 'AliquotaIVA').text = format_float(tax_rate)
+		if tax_rate == 0.0:
+			ET.SubElement(dati_riepilogo, 'Natura').text = efe_natura
+		
+		#Recalculate taxable amount using tax rate and base_tax_amount
+		imponibile_importo = (tax.total / (100+tax_rate)) * 100
+		
+		ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = format_float(imponibile_importo)
+		ET.SubElement(dati_riepilogo, 'Imposta').text = format_float(tax.tax_amount)
+		ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = "I"
 
 	### DatiPagamento
 	payment_entry_names = frappe.get_all("Payment Entry", 
@@ -329,13 +329,13 @@ def get_number_from_name(doc_name):
 def format_float(float_number):
 	return "%.2f" % float_number
 
-#Should go in @allow_regional under taxes_and_totals.py
-def get_taxable_amounts_by_tax_rate(items):
+def get_taxable_amounts_by_tax_rate(items, tax_rate=None):
 	taxable_amounts_by_rate = frappe._dict()
 	for item in items:
 		item_tax = json.loads(item.item_tax_rate)
-		tax_rate_key = str(item_tax.values()[0])
-		taxable_amounts_by_rate.setdefault(tax_rate_key, 0.0)
-		taxable_amounts_by_rate[tax_rate_key] += item.net_amount
+		if item_tax != {}:
+			tax_rate_key = str(item_tax.values()[0])
+			taxable_amounts_by_rate.setdefault(tax_rate_key, 0.0)
+			taxable_amounts_by_rate[tax_rate_key] += item.net_amount
 
 	return taxable_amounts_by_rate

@@ -139,7 +139,7 @@ def make_company_info(company):
 	ET.SubElement(sede, 'Indirizzo').text = address.address_line1
 	if address.efe_numero_civico:
 		ET.SubElement(sede, 'NumeroCivico').text = address.efe_numero_civico
-	ET.SubElement(sede, 'CAP').text = address.efe_cap
+	ET.SubElement(sede, 'CAP').text = address.pincode
 	ET.SubElement(sede, 'Comune').text = address.city
 	ET.SubElement(sede, 'Provincia').text = address.state
 	ET.SubElement(sede, 'Nazione').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
@@ -179,7 +179,7 @@ def make_customer_info(customer):
 	ET.SubElement(sede, 'Indirizzo').text = address.address_line1
 	if address.efe_numero_civico:
 		ET.SubElement(sede, 'NumeroCivico').text = address.efe_numero_civico
-	ET.SubElement(sede, 'CAP').text = address.efe_cap
+	ET.SubElement(sede, 'CAP').text = address.pincode
 	ET.SubElement(sede, 'Comune').text = address.city
 	ET.SubElement(sede, 'Provincia').text = address.state
 	ET.SubElement(sede, 'Nazione').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()

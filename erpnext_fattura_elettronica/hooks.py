@@ -137,7 +137,6 @@ fixtures = [
             "Sales Invoice-efe_mode_of_payment",
             "Delivery Note-efe_transporter_tax_id",
             "Delivery Note-efe_transporter_codice_fiscale",
-            "Address-efe_cap",
             "Address-efe_numero_civico",
             "Company-efe_sb1",
             "Company-efe_codice_fiscale",

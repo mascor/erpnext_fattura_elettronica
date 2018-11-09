@@ -37,6 +37,7 @@ This software is a Frappe Custom App but will be part of the Italian Localizatio
 ##### Company Setup:
 - Set Tax ID (Partita IVA)
 - Set Regime Fiscale
+![alt text](https://drive.google.com/open?id=1tzWt69l7qr_l6V6ObSNGxLLZzj-WoDd4)
 - Set Company Address (Street, 
 
 ##### Customers Setup:

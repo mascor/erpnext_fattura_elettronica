@@ -32,17 +32,21 @@ class EFEXMLExport(Document):
 
 
 def get_customer_invoices(filters=None):
-    out = []
-    invoices = frappe.get_all("Sales Invoice", filters=filters, fields=["name", "customer", "company"])
-    customers = list(set([invoice.customer for invoice in invoices]))
-    for customer in customers:
-        out_item = {
-            "customer": frappe.get_doc("Customer", customer),
+	out = []
+	invoices = frappe.get_all("Sales Invoice", filters=filters, fields=["name", "customer", "company"])
+
+	if len(invoices) == 0:
+		frappe.throw(_("No invoices found. Please ensure you have submitted invoices in the selected period."))
+
+	customers = list(set([invoice.customer for invoice in invoices]))
+	for customer in customers:
+		out_item = {
+			"customer": frappe.get_doc("Customer", customer),
 			"company": frappe.get_doc("Company", filters.get("company")),
-            "invoices": [invoice for invoice in invoices if invoice.customer == customer]
-        }
-        out.append(out_item)
-    return out
+			"invoices": [invoice for invoice in invoices if invoice.customer == customer]
+		}
+		out.append(out_item)
+	return out
 
 def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name):
 	namespace_map = {
@@ -66,6 +70,9 @@ def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name):
 	
 	customer = customer_invoice_set.get("customer")
 	company = customer_invoice_set.get("company")
+
+	if not company.tax_id:
+		frappe.throw(_("Please set Tax ID on Company"))
 	
 	dati_trasmissione = make_transmission_data(customer, company, efe_xml_export_name)
 	invoice_header.append(dati_trasmissione)
@@ -254,6 +261,8 @@ def make_invoice_body(invoice_data):
 
 	itemised_tax = get_itemised_tax(invoice.taxes)
 
+	riepilogo = frappe._dict()
+
 	for item in invoice.items:
 		dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DettaglioLinee')
 		ET.SubElement(dettaglio_linee, 'NumeroLinea').text = str(item.idx)
@@ -264,30 +273,26 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(dettaglio_linee, 'Quantita').text = format_float(item.qty) 
 		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(item.rate)
 		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(item.amount)
-		
-		tax_rate = sum([tax.get('tax_rate', 0) for d, tax in itemised_tax.get(item.item_code).items()])
 
+		tax_rate = sum([tax.get('tax_rate', 0) for d, tax in itemised_tax.get(item.item_code).items()])
+		tax_amount = sum([tax.get('tax_amount', 0) for d, tax in itemised_tax.get(item.item_code).items()])
+		riepilogo.setdefault(tax_rate, {"tax_amount": 0.0, "taxable_amount":0.0, "natura": ""})
+		riepilogo[tax_rate]["taxable_amount"] += item.net_amount
+		riepilogo[tax_rate]["tax_amount"] += tax_amount
 		ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = format_float(tax_rate)
 		if tax_rate == 0.0:
-			ET.SubElement(dettaglio_linee, 'Natura').text = frappe.db.get_value("Account", item_tax_rate.keys()[0], "efe_natura")
-	
-	### DatiRiepilogo
-	# Must have different Accounts in chart of accounts for different tax rates (e.g. VAT 22, VAT 0)
+			natura =  frappe.db.get_value("Item Tax", {"parent":item.item_code}, "efe_natura")
+			ET.SubElement(dettaglio_linee, 'Natura').text = natura
+			riepilogo[tax_rate]["natura"] = natura
 
-	for tax in invoice.taxes:
+	for key, value in riepilogo.items():
 		dati_riepilogo = ET.SubElement(dati_beni_servizi, 'DatiRiepilogo')
-		
-		tax_rate, efe_natura = frappe.db.get_value("Account", tax.account_head, ["tax_rate", "efe_natura"])
-
-		ET.SubElement(dati_riepilogo, 'AliquotaIVA').text = format_float(tax_rate)
-		if tax_rate == 0.0:
-			ET.SubElement(dati_riepilogo, 'Natura').text = efe_natura
-		
-		#Recalculate taxable amount using tax rate and base_tax_amount
-		imponibile_importo = (tax.total / (100+tax_rate)) * 100
-		
-		ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = format_float(imponibile_importo)
-		ET.SubElement(dati_riepilogo, 'Imposta').text = format_float(tax.tax_amount)
+		ET.SubElement(dati_riepilogo, 'AliquotaIVA').text = format_float(key)
+		if value.get("natura"):
+			ET.SubElement(dati_riepilogo, 'Natura').text = value.get("natura")
+		#Can two items with zero tax have different Natura each?
+		ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = format_float(value.get("taxable_amount"))
+		ET.SubElement(dati_riepilogo, 'Imposta').text = format_float(value.get("tax_amount"))
 		ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = "I"
 
 	### DatiPagamento

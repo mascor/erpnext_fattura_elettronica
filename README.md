@@ -69,6 +69,7 @@ If you need to use other kind of taxes, different from 22%, you can add it and s
 
 ##### EFE XML Export:
 
+- Type of Document
 - Company
 - From Date
 - To Date

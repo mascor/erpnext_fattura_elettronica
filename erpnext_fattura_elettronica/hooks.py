@@ -142,7 +142,8 @@ fixtures = [
             "Company-efe_codice_fiscale",
             "Company-efe_cb1",
             "Company-efe_regime_fiscale",
-            "Account-efe_natura"
+            "Account-efe_natura",
+            "Item Tax-efe_natura"
         ]]]
     },
 ]

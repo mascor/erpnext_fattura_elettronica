@@ -75,7 +75,7 @@ If you find an error or you're not able to validate your XML files, please open 
 In every Issue you should write these informations:
 - If is an ERPNext Exception, please explain the procedure you did step by step;
 - If is a validation error write the Validation Code and attach the XML File;
-- In every case attach screnshot errors or other screnshot could be useful for debug;
+- In every case attach screenshots errors or other screenshots could be useful for debug;
 
 ## ERPNext Customization
 

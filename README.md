@@ -43,13 +43,7 @@ This software is a Frappe Custom App but will be part of the Italian Localizatio
 
 ##### Chart of accounts Setup:
 
-If you need to use other kind of taxes, different from 22%, you can add it and specify the reason in Natura on the account form:
-- Find Duties and taxes and add a child:
-  - Account Name: VAT 0
-  - Account Type: Tax
-  - Tax Rate: 0
-- Save it and Edit the new account and set Natura
-- Create a new Sales Taxes and charges template using this new account
+If you need to use other kind of taxes, different from 22%, you can add it on the Item Master -> Item Tax. If you set to 0% it will ask to you the Natura.
 
 ##### Customers Setup:
 
@@ -74,6 +68,8 @@ If you need to use other kind of taxes, different from 22%, you can add it and s
 - From Date
 - To Date
 Export
+
+## How to Test
 
 ## ERPNext Customization
 

@@ -191,18 +191,6 @@ def make_customer_info(customer):
 	ET.SubElement(sede, 'Provincia').text = address.state
 	ET.SubElement(sede, 'Nazione').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 	
-	default_contact_name = get_default_contact("Customer", customer.name)
-	if default_contact_name:
-		contact = frappe.get_doc("Contact", default_contact_name)
-		if (contact.phone or address.phone) or (contact.email_id or address.email_id) or address.fax:
-			contatti = ET.SubElement(cessionario_committente, 'Contatti')
-			if contact.mobile_no:
-				ET.SubElement(contatti, 'Telefono').text = contact.phone or address.phone
-			if address.fax:
-				ET.SubElement(contatti, 'Fax').text = address.fax
-			if contact.email_id or address.email_id:
-				ET.SubElement(contatti, 'Email').text = contact.email_id or address.email_id
-
 	return cessionario_committente
 
 def make_invoice_body(invoice_data):

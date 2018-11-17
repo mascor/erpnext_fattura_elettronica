@@ -28,7 +28,7 @@ class EFEXMLExport(Document):
 			try:
 				generate_electronic_invoice(customer_invoice, self.name)
 			except Exception as ex:
-				print('Exception', ex)
+				frappe.log_error(frappe.get_traceback())
 
 
 def get_customer_invoices(filters=None):

@@ -28,7 +28,7 @@ class EFEXMLExport(Document):
 			try:
 				generate_electronic_invoice(customer_invoice, self.name)
 			except Exception as ex:
-				frappe.log_error(frappe.get_traceback())
+				frappe.log_error(frappe.get_traceback(), title="EFE XML Export {0}, invoice {0}")
 
 
 def get_customer_invoices(filters=None):
@@ -99,7 +99,7 @@ def make_transmission_data(customer, company, efe_xml_export_name):
 	id_trasmittente = ET.SubElement(dati_trasmissione, 'IdTrasmittente')
 	
 	ET.SubElement(id_trasmittente, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
-	ET.SubElement(id_trasmittente, 'IdCodice').text = company.tax_id
+	ET.SubElement(id_trasmittente, 'IdCodice').text = format_tax_id(company.tax_id)
 	ET.SubElement(dati_trasmissione, 'ProgressivoInvio').text = efe_xml_export_name.split("-")[1]
 
 	is_pa = frappe.db.get_value("Customer Group", customer.customer_group, "efe_is_pa")
@@ -169,7 +169,7 @@ def make_customer_info(customer):
 
 	id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIVA')
 	ET.SubElement(id_fiscale_iva, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
-	ET.SubElement(id_fiscale_iva, 'IdCodice').text = customer.tax_id
+	ET.SubElement(id_fiscale_iva, 'IdCodice').text = format_tax_id(customer.tax_id)
 
 	if customer.efe_codice_fiscale:
 		ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
@@ -314,7 +314,11 @@ def make_fname(efe_xml_export_name, company):
 	return "{0}{1}_{2}.xml".format(country_code, company.tax_id, make_autoname())
 
 def get_number_from_name(doc_name):
-	return str(int(doc_name.split("-")[1]))
+	return str(int(doc_name.split("-")[-1]))
 
 def format_float(float_number):
 	return "%.2f" % float_number
+
+def format_tax_id(tax_id):
+	#Remove "IT" prefix and any spaces from tax id
+	return tax_id.replace("IT", "").replace(" ", "")

@@ -28,7 +28,6 @@ class EFEXMLExport(Document):
 			try:
 				generate_electronic_invoice(customer_invoice, self.name)
 			except Exception as ex:
-				print("EXCEPTION", ex)
 				frappe.log_error(frappe.get_traceback(), title="EFE XML Export {0}, invoice {0}")
 
 

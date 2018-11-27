@@ -6,8 +6,8 @@ def get_data():
 	return [
 		{
 			"module_name": "Erpnext Fattura Elettronica",
-			"color": "yellow",
-			"icon": "fa file-code-o",
+			"color": "lighblue",
+			"icon": "fa fa-file-code-o",
 			"type": "module",
 			"label": _("Erpnext Fattura Elettronica")
 		}

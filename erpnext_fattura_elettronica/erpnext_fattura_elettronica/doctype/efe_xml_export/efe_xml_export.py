@@ -281,7 +281,7 @@ def make_invoice_body(invoice_data):
 		#Can two items with zero tax have different Natura each?
 		ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = format_float(value.get("taxable_amount"))
 		ET.SubElement(dati_riepilogo, 'Imposta').text = format_float(value.get("tax_amount"))
-		ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = "I"
+		ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = invoice.get("efe_esigibilita_iva")
 
 	### DatiPagamento
 	payment_entry_names = frappe.get_all("Payment Entry", 

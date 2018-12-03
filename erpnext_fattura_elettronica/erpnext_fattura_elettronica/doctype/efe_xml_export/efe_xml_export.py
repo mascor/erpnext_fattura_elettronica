@@ -16,20 +16,26 @@ from frappe.model.naming import make_autoname
 
 # Variable names used in this doctype are from the italian names.
 class EFEXMLExport(Document):
-	def generate_electronic_invoices(self):
-		filters = {
-			"posting_date": ("between", [self.from_date, self.to_date]),
-			"company": self.company,
-			"docstatus": 1
-		}
-		customer_invoices = get_customer_invoices(filters)
+	pass
 
-		for customer_invoice in customer_invoices:
-			try:
-				generate_electronic_invoice(customer_invoice, self.name)
-			except Exception as ex:
-				frappe.log_error(frappe.get_traceback(), title="EFE XML Export {0}, invoice {0}")
+@frappe.whitelist()
+def generate_electronic_invoices(from_date, to_date, company, export_doc_name):
+	filters = {
+		"posting_date": ("between", [from_date, to_date]),
+		"company": company,
+		"docstatus": 1
+	}
+	customer_invoices = get_customer_invoices(filters)
 
+	files = []
+	for customer_invoice in customer_invoices:
+		try:
+			returned_file = generate_electronic_invoice(customer_invoice, export_doc_name)
+			files.append(returned_file.file_url)
+		except Exception as ex:
+			frappe.log_error(frappe.get_traceback(), title="EFE XML Export {0}, invoice {0}")
+
+	export_zip(files, export_doc_name + ".zip")
 
 def get_customer_invoices(filters=None):
 	out = []
@@ -90,9 +96,10 @@ def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name):
 	etree_string = ET.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
 
 	file_name = make_fname(efe_xml_export_name, company)
-	
-	save_file(fname=file_name, content=etree_string, dt="EFE XML Export", dn=efe_xml_export_name)
-		
+
+	saved_file = save_file(fname=file_name, content=etree_string, dt="EFE XML Export", dn=efe_xml_export_name)		
+
+	return saved_file
 
 def make_transmission_data(customer, company, efe_xml_export_name):
 	dati_trasmissione = ET.Element('DatiTrasmissione')
@@ -117,7 +124,7 @@ def make_transmission_data(customer, company, efe_xml_export_name):
 			ET.SubElement(contatti_trasmittente, 'Email').text = company.email
 
 	if customer.efe_pec_destinatario:	
-		ET.SubElement(dati_trasmissione, 'PECDestinatario').text = customer.efe_pec_destinatario #Set mandatory if 7 zeros
+		ET.SubElement(dati_trasmissione, 'PECDestinatario').text = customer.efe_pec_destinatario
 	
 	return dati_trasmissione
 
@@ -322,3 +329,23 @@ def format_float(float_number):
 def format_tax_id(tax_id):
 	#Remove "IT" prefix and any spaces from tax id
 	return tax_id.replace("IT", "").replace(" ", "")
+
+def export_zip(files, output_filename):
+	public_folder = frappe.get_site_path('public')
+	input_files = [public_folder + filename for filename in files]
+	input_files = " ".join(input_files)
+
+	output_path = "/tmp/%s" % output_filename
+	cmd_string = "tar -cf %s %s" % (output_path, input_files)
+
+	out, err = frappe.utils.execute_in_shell(cmd_string)
+
+	if err:
+		frappe.throw("Unable to download. <br>" + err)
+
+	with open(output_path, 'rb') as fileobj:
+		filedata = fileobj.read()
+
+	frappe.local.response.filename = output_filename
+	frappe.local.response.filecontent = filedata
+	frappe.local.response.type = "download"

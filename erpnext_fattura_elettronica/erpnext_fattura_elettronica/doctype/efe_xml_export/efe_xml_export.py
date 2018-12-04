@@ -342,7 +342,7 @@ def export_zip(files, output_filename):
 	input_files = [public_folder + filename for filename in files]
 	input_files = " ".join(input_files)
 
-	output_path = public_folder + "/%s" % output_filename
+	output_path = public_folder + "/files/%s" % output_filename
 	cmd_string = "tar -cf %s %s" % (output_path, input_files)
 
 	out, err = frappe.utils.execute_in_shell(cmd_string)

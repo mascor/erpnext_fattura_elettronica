@@ -7,7 +7,7 @@ app_title = "Erpnext Fattura Elettronica"
 app_publisher = "Massimiliano Corvino"
 app_description = "App to export electronic invoice as mandated by the Italian Government"
 app_icon = "fa fa-file-code-o"
-app_color = "lighblue"
+app_color = "lightblue"
 app_email = "massimiliano.corvino@gmail.com"
 app_license = "GPLv3"
 

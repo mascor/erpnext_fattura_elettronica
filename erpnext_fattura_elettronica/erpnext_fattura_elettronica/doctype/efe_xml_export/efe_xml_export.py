@@ -33,7 +33,10 @@ def generate_electronic_invoices(from_date, to_date, company, export_doc_name):
 			returned_file = generate_electronic_invoice(customer_invoice, export_doc_name)
 			files.append(returned_file.file_url)
 		except Exception as ex:
-			frappe.log_error(frappe.get_traceback(), title="EFE XML Export {0}, invoice {0}")
+			frappe.log_error(
+				frappe.get_traceback(), 
+				title="EFE XML Export {0}, Customer {1}".format(export_doc_name, customer_invoice.get("customer"))
+			)
 
 	export_zip(files, export_doc_name + ".zip")
 
@@ -90,7 +93,11 @@ def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name):
 	invoice_header.append(cessionario_committente)
 
 	for invoice in customer_invoice_set.get("invoices"):
-		invoice_body = make_invoice_body(invoice)
+		try:
+			invoice_body = make_invoice_body(invoice)
+		except Exception as e:
+			raise
+
 		root.append(invoice_body)
  
 	etree_string = ET.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
@@ -335,7 +342,7 @@ def export_zip(files, output_filename):
 	input_files = [public_folder + filename for filename in files]
 	input_files = " ".join(input_files)
 
-	output_path = "/tmp/%s" % output_filename
+	output_path = public_folder + "/files/%s" % output_filename
 	cmd_string = "tar -cf %s %s" % (output_path, input_files)
 
 	out, err = frappe.utils.execute_in_shell(cmd_string)

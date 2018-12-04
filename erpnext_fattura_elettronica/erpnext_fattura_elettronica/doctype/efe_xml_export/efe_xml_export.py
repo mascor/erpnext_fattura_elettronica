@@ -345,6 +345,8 @@ def export_zip(files, output_filename):
 	output_path = public_folder + "/files/%s" % output_filename
 	cmd_string = "tar -cf %s %s" % (output_path, input_files)
 
+	frappe.log("Input command for XML Export: " + cmd_string)
+	
 	out, err = frappe.utils.execute_in_shell(cmd_string)
 
 	if err:

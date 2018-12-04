@@ -338,19 +338,14 @@ def format_tax_id(tax_id):
 	return tax_id.replace("IT", "").replace(" ", "")
 
 def export_zip(files, output_filename):
-	public_folder = frappe.get_site_path('public')
-	input_files = [public_folder + filename for filename in files]
-	input_files = " ".join(input_files)
+	from zipfile import ZipFile
 
-	output_path = public_folder + "/files/%s" % output_filename
-	cmd_string = "tar -cf %s %s" % (output_path, input_files)
-
-	frappe.log("Input command for XML Export: " + cmd_string)
+	input_files = [frappe.get_site_path('public') + filename for filename in files]
+	output_path = frappe.get_site_path('public', 'files', output_filename)
 	
-	out, err = frappe.utils.execute_in_shell(cmd_string)
-
-	if err:
-		frappe.throw("Unable to download. <br>" + err)
+	with ZipFile(output_path, 'w') as output_zip:
+		for input_file in input_files:
+			output_zip.write(input_file, arcname=os.path.basename(input_file))
 
 	with open(output_path, 'rb') as fileobj:
 		filedata = fileobj.read()

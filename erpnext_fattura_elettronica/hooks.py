@@ -6,8 +6,8 @@ app_name = "erpnext_fattura_elettronica"
 app_title = "Erpnext Fattura Elettronica"
 app_publisher = "Massimiliano Corvino"
 app_description = "App to export electronic invoice as mandated by the Italian Government"
-app_icon = "fa fa-file-text"
-app_color = "yellow"
+app_icon = "fa fa-file-code-o"
+app_color = "lightblue"
 app_email = "massimiliano.corvino@gmail.com"
 app_license = "GPLv3"
 
@@ -141,6 +141,9 @@ fixtures = [
             "Company-efe_codice_fiscale",
             "Company-efe_cb1",
             "Company-efe_regime_fiscale",
+            "Company-efe_esigibilita_iva",
+            "Sales Inovice-efe_esigibilita_iva",
+            "Sales Invoice-sb_efe1",
             "Account-efe_natura",
             "Item Tax-efe_natura"
         ]]]

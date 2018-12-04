@@ -142,7 +142,7 @@ fixtures = [
             "Company-efe_cb1",
             "Company-efe_regime_fiscale",
             "Company-efe_esigibilita_iva",
-            "Sales Inovice-efe_esigibilita_iva",
+            "Sales Invoice-efe_esigibilita_iva",
             "Sales Invoice-sb_efe1",
             "Account-efe_natura",
             "Item Tax-efe_natura"

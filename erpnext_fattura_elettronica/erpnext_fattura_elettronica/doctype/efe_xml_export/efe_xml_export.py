@@ -284,6 +284,10 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = format_float(tax_rate)
 		if tax_rate == 0.0:
 			natura =  frappe.db.get_value("Item Tax", {"parent":item.item_code}, "efe_natura")
+			if not natura:
+				zero_tax_row = next((tax_row for tax_row in invoice.taxes if tax_row.rate == 0.0), None)
+				natura = zero_tax_row.efe_natura
+
 			ET.SubElement(dettaglio_linee, 'Natura').text = natura
 			riepilogo[tax_rate]["natura"] = natura
 

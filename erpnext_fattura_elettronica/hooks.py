@@ -144,6 +144,7 @@ fixtures = [
             "Company-efe_esigibilita_iva",
             "Sales Invoice-efe_esigibilita_iva",
             "Sales Invoice-sb_efe1",
+            "Sales Taxes and Charges-efe_natura",
             "Account-efe_natura",
             "Item Tax-efe_natura"
         ]]]

@@ -376,8 +376,6 @@ def get_document_type(invoice):
 	#If is_return is set, the current invoice is a Credit Note. Amounts may have to be adjusted to show positive values
 	if invoice.doctype == "Sales Invoice" and invoice.is_return:
 		return "TD04"
-	elif invoice.doctype == "Payment Entry":
-		return "TD02"
 	else:
 		return "TD01"
 	#TODO: 

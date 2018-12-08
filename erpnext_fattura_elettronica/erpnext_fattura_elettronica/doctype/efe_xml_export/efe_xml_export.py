@@ -34,9 +34,10 @@ def generate_electronic_invoices(from_date, to_date, company, export_doc_name):
 			files.append(returned_file.file_url)
 		except Exception as ex:
 			frappe.log_error(
-				frappe.get_traceback(), 
+				message=frappe.get_traceback(),
 				title="EFE XML Export {0}, Customer {1}".format(export_doc_name, customer_invoice.get("customer"))
 			)
+			frappe.throw(message=ex, title=_("Error while generating invoice"))
 
 	export_zip(files, export_doc_name + ".zip")
 
@@ -80,8 +81,8 @@ def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name):
 	customer = customer_invoice_set.get("customer")
 	company = customer_invoice_set.get("company")
 
-	if not company.tax_id:
-		frappe.throw(_("Please set Tax ID on Company"))
+	validate_company(company)
+	validate_customer(customer)
 	
 	dati_trasmissione = make_transmission_data(customer, company, efe_xml_export_name)
 	invoice_header.append(dati_trasmissione)
@@ -96,14 +97,13 @@ def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name):
 		try:
 			invoice_body = make_invoice_body(invoice)
 		except Exception as e:
-			raise
+			frappe.throw(message=e, title=_("Error creating invoice %s" % invoice.name))
 
 		root.append(invoice_body)
  
 	etree_string = ET.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
 
 	file_name = make_fname(efe_xml_export_name, company)
-
 	saved_file = save_file(fname=file_name, content=etree_string, dt="EFE XML Export", dn=efe_xml_export_name)		
 
 	return saved_file
@@ -150,11 +150,8 @@ def make_company_info(company):
 	ET.SubElement(anagrafica, 'Denominazione').text = company.name
 	ET.SubElement(dati_anagrafici, 'RegimeFiscale').text = company.efe_regime_fiscale
 
-
 	#Set Address. Decide mandatory fields.
 	address_name = get_default_address("Company", company.name)
-	if not address_name:
-		frappe.throw(_("Please set address for Company %s" % company.name))
 	address = frappe.get_doc("Address", address_name)
 	sede = ET.SubElement(cedente_prestatore, 'Sede')
 	ET.SubElement(sede, 'Indirizzo').text = address.address_line1
@@ -192,9 +189,6 @@ def make_customer_info(customer):
 	ET.SubElement(anagrafica, 'Denominazione').text = customer.customer_name
 	
 	address_name = get_default_address("Customer", customer.name)
-	if not address_name:
-		frappe.throw(_("Please set address for customer %s" % customer.name))
-
 	address = frappe.get_doc("Address", address_name)
 	sede = ET.SubElement(cessionario_committente, 'Sede')
 	ET.SubElement(sede, 'Indirizzo').text = address.address_line1
@@ -215,12 +209,11 @@ def make_invoice_body(invoice_data):
 	dati_generali = ET.SubElement(invoice_body, 'DatiGenerali')
 	dati_generali_documento = ET.SubElement(dati_generali, 'DatiGeneraliDocumento')
 	
-	ET.SubElement(dati_generali_documento, 'TipoDocumento').text = frappe.db.get_value("Tipo Documento", 
-		{"counterpart_doctype":"Sales Invoice"}, "code")
+	ET.SubElement(dati_generali_documento, 'TipoDocumento').text = get_document_type(invoice)
 
 	ET.SubElement(dati_generali_documento, 'Divisa').text = "EUR"
 	ET.SubElement(dati_generali_documento, 'Data').text = str(invoice.posting_date)
-	ET.SubElement(dati_generali_documento, 'Numero').text = get_number_from_name(invoice.name)
+	ET.SubElement(dati_generali_documento, 'Numero').text = get_number_from_name(invoice.name, invoice.amended_from != "")
 	
 	if len(invoice.taxes):
 		bollo = next((tax for tax in invoice.taxes if "bollo" in tax.account_head.lower()), None)
@@ -288,6 +281,9 @@ def make_invoice_body(invoice_data):
 				zero_tax_row = next((tax_row for tax_row in invoice.taxes if tax_row.rate == 0.0), None)
 				natura = zero_tax_row.efe_natura
 
+				if not natura:
+					frappe.throw(_("Please set Natura for item %s in either Item Tax or Sales Taxes and Charges Template"))
+
 			ET.SubElement(dettaglio_linee, 'Natura').text = natura
 			riepilogo[tax_rate]["natura"] = natura
 
@@ -331,8 +327,9 @@ def make_fname(efe_xml_export_name, company):
 	country_code = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 	return "{0}{1}_{2}.xml".format(country_code, company.tax_id, make_autoname())
 
-def get_number_from_name(doc_name):
-	return str(int(doc_name.split("-")[-1]))
+def get_number_from_name(doc_name, is_amended=False):
+	index = -1 if not is_amended else 1
+	return str(int(doc_name.split("-")[index]))
 
 def format_float(float_number):
 	return "%.2f" % float_number
@@ -357,3 +354,32 @@ def export_zip(files, output_filename):
 	frappe.local.response.filename = output_filename
 	frappe.local.response.filecontent = filedata
 	frappe.local.response.type = "download"
+
+def validate_company(company):
+	if not company.tax_id:
+		frappe.throw(_("Please set Tax ID for company %s" % company.name))
+	
+	if not get_default_address('Company', company.name):
+		frappe.throw(_("Please set the address for company %s" % company.name))
+	
+	if not company.efe_regime_fiscale:
+		frappe.throw(_("Please set Regime Fiscale for company %s" % company.name))
+
+def validate_customer(customer):
+	if customer.efe_codice_destinatario == "0000000" and (not customer.tax_id and not customer.efe_codice_fiscale):
+		frappe.throw(_("Please set Tax ID or Codice Fiscale for customer %s" % customer.customer_name or customer.name))
+	
+	if not get_default_address('Customer', customer.name):
+		frappe.throw(_("Please set the address for customer %s" % customer.customer_name or customer.name))
+
+def get_document_type(invoice):
+	#If is_return is set, the current invoice is a Credit Note. Amounts may have to be adjusted to show positive values
+	if invoice.doctype == "Sales Invoice" and invoice.is_return:
+		return "TD04"
+	elif invoice.doctype == "Payment Entry":
+		return "TD02"
+	else:
+		return "TD01"
+	#TODO: 
+	# 1. Improve condition for TDO2 
+	# 2. Add conditions for TD03, TD05, TD06

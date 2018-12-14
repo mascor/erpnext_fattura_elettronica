@@ -37,7 +37,7 @@ def generate_electronic_invoices(from_date, to_date, company, export_doc_name):
 				message=frappe.get_traceback(),
 				title="EFE XML Export {0}, Customer {1}".format(export_doc_name, customer_invoice.get("customer"))
 			)
-			frappe.throw(message=ex, title=_("Error while generating invoice"))
+			frappe.throw(ex)
 
 	export_zip(files, export_doc_name + ".zip")
 
@@ -97,7 +97,7 @@ def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name):
 		try:
 			invoice_body = make_invoice_body(invoice)
 		except Exception as e:
-			frappe.throw(message=e, title=_("Error creating invoice %s" % invoice.name))
+			frappe.throw(e, title=_("Error creating invoice %s" % invoice.name))
 
 		root.append(invoice_body)
  
@@ -119,9 +119,8 @@ def make_transmission_data(customer, company, efe_xml_export_name):
 	is_pa = frappe.db.get_value("Customer Group", customer.customer_group, "efe_is_pa")
 	
 	ET.SubElement(dati_trasmissione, 'FormatoTrasmissione').text = "FPA12" if is_pa else "FPR12"
-	
-	if customer.efe_codice_destinatario:
-		ET.SubElement(dati_trasmissione, 'CodiceDestinatario').text = customer.efe_codice_destinatario #Set default as 7 zeros
+
+	ET.SubElement(dati_trasmissione, 'CodiceDestinatario').text = customer.efe_codice_destinatario #Set default as 7 zeros
 
 	if company.phone_no or company.email:
 		contatti_trasmittente = ET.SubElement(dati_trasmissione, 'ContattiTrasmittente')
@@ -159,7 +158,8 @@ def make_company_info(company):
 		ET.SubElement(sede, 'NumeroCivico').text = address.efe_numero_civico
 	ET.SubElement(sede, 'CAP').text = address.pincode
 	ET.SubElement(sede, 'Comune').text = address.city
-	ET.SubElement(sede, 'Provincia').text = address.state
+	if address.state:
+		ET.SubElement(sede, 'Provincia').text = address.state
 	ET.SubElement(sede, 'Nazione').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 
 	if company.phone_no or company.email or company.fax:
@@ -196,7 +196,8 @@ def make_customer_info(customer):
 		ET.SubElement(sede, 'NumeroCivico').text = address.efe_numero_civico
 	ET.SubElement(sede, 'CAP').text = address.pincode
 	ET.SubElement(sede, 'Comune').text = address.city
-	ET.SubElement(sede, 'Provincia').text = address.state
+	if address.state:
+		ET.SubElement(sede, 'Provincia').text = address.state
 	ET.SubElement(sede, 'Nazione').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 	
 	return cessionario_committente
@@ -371,6 +372,9 @@ def validate_customer(customer):
 	
 	if not get_default_address('Customer', customer.name):
 		frappe.throw(_("Please set the address for customer %s" % customer.customer_name or customer.name))
+
+	if not customer.efe_codice_destinatario:
+		frappe.throw(_("Please set the Codice Destinatario for customer %s" % customer.customer_name or customer.name))
 
 def get_document_type(invoice):
 	#If is_return is set, the current invoice is a Credit Note. Amounts may have to be adjusted to show positive values

@@ -31,6 +31,8 @@ app_license = "GPLv3"
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
+doctype_js = {"Sales Invoice" : "public/js/efe_sales_invoice.js"}
+
 after_install = "erpnext_fattura_elettronica.install.after_install"
 
 doctype_list_js = { "Sales Invoice" : "public/js/efe_sales_invoice_list.js" }

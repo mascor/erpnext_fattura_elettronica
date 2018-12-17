@@ -222,6 +222,7 @@ def make_invoice_body(invoice_data):
 
 		if bollo:
 			dati_bollo = ET.SubElement(dati_generali_documento, 'DatiBollo')
+			ET.SubElement(dati_bollo, 'BolloVirtuale').text = "SI"
 			ET.SubElement(dati_bollo, 'ImportoBollo').text = format_float(bollo.tax_amount)
 		if ritenuta:
 			dati_ritenuta = ET.SubElement(dati_generali_documento, 'DatiRitenuta')
@@ -270,8 +271,8 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(item.rate)
 		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(item.amount)
 
-		tax_rate = sum([tax.get('tax_rate', 0) for d, tax in itemised_tax.get(item.item_code).items()])
-		tax_amount = sum([tax.get('tax_amount', 0) for d, tax in itemised_tax.get(item.item_code).items()])
+		tax_rate = sum([tax.get('tax_rate', 0) for d, tax in itemised_tax.get(item.item_code).items() if "VAT" in d])
+		tax_amount = sum([tax.get('tax_amount', 0) for d, tax in itemised_tax.get(item.item_code).items() if "VAT" in d])
 		riepilogo.setdefault(tax_rate, {"tax_amount": 0.0, "taxable_amount":0.0, "natura": ""})
 		riepilogo[tax_rate]["taxable_amount"] += item.net_amount
 		riepilogo[tax_rate]["tax_amount"] += tax_amount
@@ -279,7 +280,7 @@ def make_invoice_body(invoice_data):
 		if tax_rate == 0.0:
 			natura =  frappe.db.get_value("Item Tax", {"parent":item.item_code}, "efe_natura")
 			if not natura:
-				zero_tax_row = next((tax_row for tax_row in invoice.taxes if tax_row.rate == 0.0), None)
+				zero_tax_row = next((tax_row for tax_row in invoice.taxes if tax_row.rate == 0.0), None) #TODO: VAT account in Settings
 				natura = zero_tax_row.efe_natura
 
 				if not natura:
@@ -307,13 +308,13 @@ def make_invoice_body(invoice_data):
 	)
 	
 	for payment_entry_name in payment_entry_names:
-		payment_entry = frappe.get_doc("Payment Entry Name", payment_entry_name)
+		payment_entry = frappe.get_doc("Payment Entry", payment_entry_name)
 		dati_pagamento = ET.SubElement(invoice_body, 'DatiPagamento')
-		ET.SubElement(invoice_body, 'CondizionePagamento').text = "TP01" if len(invoice.payment_schedule) > 1 else "TP02"
+		ET.SubElement(dati_pagamento, 'CondizionePagamento').text = "TP01" if len(invoice.payment_schedule) > 1 else "TP02"
 		
-		dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DatiPagamento')
+		dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DettaglioPagamento')
 		ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = frappe.db.get_value("Mode of Payment", payment_entry.mode_of_payment, "efe_code")
-		ET.SubElement(dettaglio_pagamento, 'DataScadenzaPagamento').text = payment_entry.posting_date
+		#ET.SubElement(dettaglio_pagamento, 'DataScadenzaPagamento').text = str(payment_entry.posting_date)
 
 		#Get amount allocated for the specific invoice
 		paid_amount_for_invoice = next(

@@ -31,7 +31,10 @@ app_license = "GPLv3"
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
-doctype_js = {"Sales Invoice" : "public/js/efe_sales_invoice.js"}
+doctype_js = {
+    "Sales Invoice" : "public/js/efe_sales_invoice.js",
+    "Customer" : "public/js/efe_customer.js"
+}
 
 after_install = "erpnext_fattura_elettronica.install.after_install"
 
@@ -131,10 +134,17 @@ fixtures = [
         "dt":"Custom Field", 
         "filters": [["name", "in", [
             "Customer Group-efe_is_pa",
+            "Customer-efe_first_name",
+            "Customer-efe_last_name",
+            "Customer-efe_date_of_birth",
+            "Customer-efe_place_of_birth",
             "Customer-efe_sb_1",
-            "Customer-efe_codice_fiscale",
             "Customer-efe_pec_destinatario",
             "Customer-efe_codice_destinatario",
+            "Customer-efe_cb_1",
+            "Customer-efe_codice_fiscale",
+            "Customer-efe_generate_codice_fiscale",
+            "Customer-efe_validate_codice_fiscale",
             "Mode of Payment-efe_code",
             "Delivery Note-efe_transporter_tax_id",
             "Delivery Note-efe_transporter_codice_fiscale",

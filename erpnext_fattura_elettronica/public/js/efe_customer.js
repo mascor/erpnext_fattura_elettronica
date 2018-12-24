@@ -1,4 +1,7 @@
 frappe.ui.form.on("Customer", {
+    onload: function(frm) {
+        filter_place_of_birth(frm);
+    },
     efe_first_name: function(frm) {
         make_customer_name(frm);
     },
@@ -6,7 +9,8 @@ frappe.ui.form.on("Customer", {
         make_customer_name(frm);
     },
     efe_generate_codice_fiscale: function(frm) {
-        if (!check_cf_prerequisites(frm)) {
+        var prerequisites_valid = efe_check_cf_prerequisites(frm); 
+        if (!prerequisites_valid) {
             frappe.msgprint(
                 __("Please ensure these fields have valid values: <ul><li>First Name</li><li>Last Name</li><li>Gender</li><li>Date of Birth</li><li>Place of Birth</li></ul>."),
                 __("Generate Codice Fiscale")
@@ -44,7 +48,7 @@ frappe.ui.form.on("Customer", {
 });
 
 //Utilites
-function check_cf_prerequisites(frm) {
+function efe_check_cf_prerequisites(frm) {    
     if(!frm.doc.efe_first_name ||
         !frm.doc.efe_last_name ||
         !frm.doc.efe_date_of_birth ||
@@ -60,4 +64,13 @@ function make_customer_name(frm) {
         "customer_name", 
         [frm.doc.efe_last_name, frm.doc.efe_first_name].join(" ").trim()
     );
+}
+function filter_place_of_birth(frm) {
+    frm.set_query("efe_place_of_birth", function() {
+        return {
+            "filters": {
+                "is_group": 0
+            }
+        };
+    })
 }

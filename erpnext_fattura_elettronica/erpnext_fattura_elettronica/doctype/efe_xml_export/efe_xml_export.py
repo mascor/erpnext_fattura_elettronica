@@ -178,16 +178,18 @@ def make_customer_info(customer):
 	
 	dati_anagrafici = ET.SubElement(cessionario_committente, 'DatiAnagrafici')
 
-	id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIVA')
-	ET.SubElement(id_fiscale_iva, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
-	ET.SubElement(id_fiscale_iva, 'IdCodice').text = format_tax_id(customer.tax_id)
-
-	if customer.efe_codice_fiscale:
+	if customer.customer_type == _("Company"):
+		id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIVA')
+		ET.SubElement(id_fiscale_iva, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
+		ET.SubElement(id_fiscale_iva, 'IdCodice').text = format_tax_id(customer.tax_id)
+		anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
+		ET.SubElement(anagrafica, 'Denominazione').text = customer.customer_name
+	else:
 		ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
-	
-	anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
-	ET.SubElement(anagrafica, 'Denominazione').text = customer.customer_name
-	
+		anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
+		ET.SubElement(anagrafica, 'Nome').text = customer.efe_first_name
+		ET.SubElement(anagrafica, 'Cognome').text = customer.efe_last_name
+
 	address_name = get_default_address("Customer", customer.name)
 	address = frappe.get_doc("Address", address_name)
 	sede = ET.SubElement(cessionario_committente, 'Sede')
@@ -219,18 +221,16 @@ def make_invoice_body(invoice_data):
 	if len(invoice.taxes):
 		bollo = next((tax for tax in invoice.taxes if "bollo" in tax.account_head.lower()), None)
 		ritenuta =next ((tax for tax in invoice.taxes if "iva" in tax.account_head.lower()), None)
-
-		if bollo:
-			dati_bollo = ET.SubElement(dati_generali_documento, 'DatiBollo')
-			ET.SubElement(dati_bollo, 'BolloVirtuale').text = "SI"
-			ET.SubElement(dati_bollo, 'ImportoBollo').text = format_float(bollo.tax_amount)
 		if ritenuta:
 			dati_ritenuta = ET.SubElement(dati_generali_documento, 'DatiRitenuta')
 			ET.SubElement(dati_ritenuta, 'TipoRitenuta').text = ritenuta.account_head
 			ET.SubElement(dati_ritenuta, 'ImportoRitenuta').text = ritenuta.account_head
 			ET.SubElement(dati_ritenuta, 'AliquotaRitenuta').text = ritenuta.account_head
 			ET.SubElement(dati_ritenuta, 'CausalePagamento').text = "IVA" #Confirm
-	
+		if bollo:
+			dati_bollo = ET.SubElement(dati_generali_documento, 'DatiBollo')
+			ET.SubElement(dati_bollo, 'BolloVirtuale').text = "SI"
+			ET.SubElement(dati_bollo, 'ImportoBollo').text = format_float(bollo.tax_amount)
 	ET.SubElement(dati_generali_documento, 'ImportoTotaleDocumento').text = format_float(invoice.grand_total)
 	ET.SubElement(dati_generali_documento, 'Causale').text = "VENDITA" #CAUSALE as select field
 	
@@ -277,14 +277,14 @@ def make_invoice_body(invoice_data):
 		riepilogo[tax_rate]["taxable_amount"] += item.net_amount
 		riepilogo[tax_rate]["tax_amount"] += tax_amount
 		ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = format_float(tax_rate)
-		if tax_rate == 0.0:
+		if tax_rate == 0.0 and tax_amount == 0.0:
 			natura =  frappe.db.get_value("Item Tax", {"parent":item.item_code}, "efe_natura")
 			if not natura:
-				zero_tax_row = next((tax_row for tax_row in invoice.taxes if tax_row.rate == 0.0), None) #TODO: VAT account in Settings
+				zero_tax_row = next((tax_row for tax_row in invoice.taxes if tax_row.rate == 0.0 and tax_row.tax_amount == 0.0), None) #TODO: VAT account in Settings
 				natura = zero_tax_row.efe_natura
 
 				if not natura:
-					frappe.throw(_("Please set Natura for item %s in either Item Tax or Sales Taxes and Charges Template"))
+					frappe.throw(_("Please set Natura for item %s in either Item Tax or Sales Taxes and Charges Template" % item.item_name))
 
 			ET.SubElement(dettaglio_linee, 'Natura').text = natura
 			riepilogo[tax_rate]["natura"] = natura
@@ -310,7 +310,7 @@ def make_invoice_body(invoice_data):
 	for payment_entry_name in payment_entry_names:
 		payment_entry = frappe.get_doc("Payment Entry", payment_entry_name)
 		dati_pagamento = ET.SubElement(invoice_body, 'DatiPagamento')
-		ET.SubElement(dati_pagamento, 'CondizionePagamento').text = "TP01" if len(invoice.payment_schedule) > 1 else "TP02"
+		ET.SubElement(dati_pagamento, 'CondizioniPagamento').text = "TP01" if len(invoice.payment_schedule) > 1 else "TP02"
 		
 		dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DettaglioPagamento')
 		ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = frappe.db.get_value("Mode of Payment", payment_entry.mode_of_payment, "efe_code")
@@ -368,8 +368,11 @@ def validate_company(company):
 		frappe.throw(_("Please set Regime Fiscale for company %s" % company.name))
 
 def validate_customer(customer):
-	if customer.efe_codice_destinatario == "0000000" and (not customer.tax_id and not customer.efe_codice_fiscale):
-		frappe.throw(_("Please set Tax ID or Codice Fiscale for customer %s" % customer.customer_name or customer.name))
+	if customer.efe_codice_destinatario == "0000000":
+		if (customer.customer_type == _("Company") and not customer.tax_id):
+			frappe.throw(_("Please set Tax ID for customer %s" % customer.customer_name or customer.name))
+		elif not customer.efe_codice_fiscale:
+			frappe.throw(_("Please set Codice Fiscale for customer %s" % customer.customer_name or customer.name))
 	
 	if not get_default_address('Customer', customer.name):
 		frappe.throw(_("Please set the address for customer %s" % customer.customer_name or customer.name))

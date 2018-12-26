@@ -11,7 +11,6 @@ frappe.ui.form.on('EFE XML Export', {
 					+ "from_date=" + encodeURIComponent(frm.doc.from_date)
 					+ "&to_date=" + encodeURIComponent(frm.doc.to_date)
 					+ "&company=" + encodeURIComponent(frm.doc.company)
-					+ "&export_doc_name=" + encodeURIComponent(frm.doc.name)
 					)
 				);
 				if (!w) {

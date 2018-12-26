@@ -19,7 +19,7 @@ class EFEXMLExport(Document):
 	pass
 
 @frappe.whitelist()
-def generate_electronic_invoices(from_date, to_date, company, export_doc_name):
+def generate_electronic_invoices(from_date, to_date, company):
 	filters = {
 		"posting_date": ("between", [from_date, to_date]),
 		"company": company,
@@ -30,16 +30,16 @@ def generate_electronic_invoices(from_date, to_date, company, export_doc_name):
 	files = []
 	for customer_invoice in customer_invoices:
 		try:
-			returned_file = generate_electronic_invoice(customer_invoice, export_doc_name)
-			files.append(returned_file.file_url)
+			returned_file_url = generate_electronic_invoice(customer_invoice)
+			files.append(returned_file_url)
 		except Exception as ex:
 			frappe.log_error(
 				message=frappe.get_traceback(),
-				title="EFE XML Export {0}, Customer {1}".format(export_doc_name, customer_invoice.get("customer"))
+				title="Customer {0}".format(customer_invoice.get("customer"))
 			)
 			frappe.throw(ex)
 
-	export_zip(files, export_doc_name + ".zip")
+	export_zip(files, "e-invoices_{0}.zip".format(frappe.utils.get_datetime()))
 
 def get_customer_invoices(filters=None):
 	out = []
@@ -58,7 +58,7 @@ def get_customer_invoices(filters=None):
 		out.append(out_item)
 	return out
 
-def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name):
+def generate_electronic_invoice(customer_invoice_set):
 	namespace_map = {
 		"p": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2",
 		"ds": "http://www.w3.org/2000/09/xmldsig#",
@@ -84,7 +84,7 @@ def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name):
 	validate_company(company)
 	validate_customer(customer)
 	
-	dati_trasmissione = make_transmission_data(customer, company, efe_xml_export_name)
+	dati_trasmissione = make_transmission_data(customer, company)
 	invoice_header.append(dati_trasmissione)
 
 	cedente_prestatore = make_company_info(company)
@@ -103,18 +103,24 @@ def generate_electronic_invoice(customer_invoice_set, efe_xml_export_name):
  
 	etree_string = ET.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
 
-	file_name = make_fname(efe_xml_export_name, company)
-	saved_file = save_file(fname=file_name, content=etree_string, dt="EFE XML Export", dn=efe_xml_export_name)		
+	file_name = make_fname(company)
 
-	return saved_file
+	try:
+		with open(file_name, "w") as outputfile:
+			outputfile.write(etree_string)
+		
+	except Exception as ex:
+		frappe.log_error("Unable to save XML file.")
 
-def make_transmission_data(customer, company, efe_xml_export_name):
+	return file_name
+
+def make_transmission_data(customer, company):
 	dati_trasmissione = ET.Element('DatiTrasmissione')
 	id_trasmittente = ET.SubElement(dati_trasmissione, 'IdTrasmittente')
 	
 	ET.SubElement(id_trasmittente, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 	ET.SubElement(id_trasmittente, 'IdCodice').text = format_tax_id(company.tax_id)
-	ET.SubElement(dati_trasmissione, 'ProgressivoInvio').text = efe_xml_export_name.split("-")[1]
+	ET.SubElement(dati_trasmissione, 'ProgressivoInvio').text = str(make_autoname())
 
 	is_pa = frappe.db.get_value("Customer Group", customer.customer_group, "efe_is_pa")
 	
@@ -325,9 +331,10 @@ def make_invoice_body(invoice_data):
 
 	return invoice_body
 
-def make_fname(efe_xml_export_name, company):
+def make_fname(company):
 	country_code = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
-	return "{0}{1}_{2}.xml".format(country_code, company.tax_id, make_autoname())
+	file_name =  "{0}{1}_{2}.xml".format(country_code, company.tax_id, make_autoname())
+	return (frappe.get_site_path('public', 'files', file_name))
 
 def get_number_from_name(doc_name, is_amended=False):
 	index = -1 if not is_amended else 1
@@ -343,7 +350,7 @@ def format_tax_id(tax_id):
 def export_zip(files, output_filename):
 	from zipfile import ZipFile
 
-	input_files = [frappe.get_site_path('public') + filename for filename in files]
+	input_files = [filename for filename in files]
 	output_path = frappe.get_site_path('public', 'files', output_filename)
 	
 	with ZipFile(output_path, 'w') as output_zip:

@@ -405,11 +405,11 @@ def generate_single_invoice(invoice_name):
 		"company": frappe.get_doc("Company", invoice.company),
 		"invoices": [invoice]
 	}
-	
+
 	exported_file = generate_electronic_invoice(invoice_data)
 	with open(exported_file, 'rb') as fileobj:
 		filedata = fileobj.read()
 
-	frappe.local.response.filename = exported_file
+	frappe.local.response.filename = os.path.basename(exported_file)
 	frappe.local.response.filecontent = filedata
 	frappe.local.response.type = "download"

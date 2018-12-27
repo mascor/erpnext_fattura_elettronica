@@ -14,32 +14,28 @@ import json, os
 from frappe.utils.file_manager import save_file
 from frappe.model.naming import make_autoname
 
-# Variable names used in this doctype are from the italian names.
-class EFEXMLExport(Document):
-	pass
-
 @frappe.whitelist()
 def generate_electronic_invoices(names):
-	if names:
-		names = json.loads(names)
+    if names:
+        names = names.split(",")
 
-	filters = {"name": ("in", names)}
+    filters = {"name": ("in", names)}
 
-	invoices = frappe.get_all("Sales Invoice", filters=filters, fields=["name", "customer", "company"])
+    invoices = frappe.get_all("Sales Invoice", filters=filters, fields=["name", "customer", "company"])
 
-	files = []
-	for invoice in invoices:
-		try:
-			returned_file_url = generate_electronic_invoice(invoice)
-			files.append(returned_file_url)
-		except Exception as ex:
-			frappe.log_error(
-				message=frappe.get_traceback(),
-				title="Customer {0}".format(invoice.get("customer"))
-			)
-			frappe.throw(ex)
+    files = []
+    for invoice in invoices:
+        try:
+            returned_file_url = generate_electronic_invoice(invoice)
+            files.append(returned_file_url)
+        except Exception as ex:
+            frappe.log_error(
+                message=frappe.get_traceback(),
+                title="Customer {0}".format(invoice.get("customer"))
+            )
+            frappe.throw(ex)
 
-	export_zip(files, "e-invoices_{0}.zip".format(frappe.utils.get_datetime()))
+    export_zip(files, "e-invoices_{0}.zip".format(frappe.utils.get_datetime()))
 
 def generate_electronic_invoice(invoice):
 	namespace_map = {
@@ -67,9 +63,7 @@ def generate_electronic_invoice(invoice):
 	validate_company(company)
 	validate_customer(customer)
 	
-	file_number = make_autoname()
-
-	dati_trasmissione = make_transmission_data(customer, company, file_number)
+	dati_trasmissione = make_transmission_data(customer, company)
 	invoice_header.append(dati_trasmissione)
 
 	cedente_prestatore = make_company_info(company)
@@ -88,7 +82,7 @@ def generate_electronic_invoice(invoice):
  
 	etree_string = ET.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
 
-	file_name = make_fname(company, file_number)
+	file_name = make_fname(company)
 
 	try:
 		with open(file_name, "w") as outputfile:
@@ -99,13 +93,13 @@ def generate_electronic_invoice(invoice):
 
 	return file_name
 
-def make_transmission_data(customer, company, file_number):
+def make_transmission_data(customer, company):
 	dati_trasmissione = ET.Element('DatiTrasmissione')
 	id_trasmittente = ET.SubElement(dati_trasmissione, 'IdTrasmittente')
 	
 	ET.SubElement(id_trasmittente, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 	ET.SubElement(id_trasmittente, 'IdCodice').text = format_tax_id(company.tax_id)
-	ET.SubElement(dati_trasmissione, 'ProgressivoInvio').text = file_number
+	ET.SubElement(dati_trasmissione, 'ProgressivoInvio').text = str(make_autoname())
 
 	is_pa = frappe.db.get_value("Customer Group", customer.customer_group, "efe_is_pa")
 	
@@ -173,10 +167,6 @@ def make_customer_info(customer):
 		id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIVA')
 		ET.SubElement(id_fiscale_iva, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 		ET.SubElement(id_fiscale_iva, 'IdCodice').text = format_tax_id(customer.tax_id)
-
-		if customer.efe_codice_fiscale and customer.tax_id != customer.efe_codice_fiscale:
-			ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
-
 		anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
 		ET.SubElement(anagrafica, 'Denominazione').text = customer.customer_name
 	else:
@@ -320,9 +310,9 @@ def make_invoice_body(invoice_data):
 
 	return invoice_body
 
-def make_fname(company, file_number):
+def make_fname(company):
 	country_code = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
-	file_name =  "{0}{1}_{2}.xml".format(country_code, company.tax_id, file_number)
+	file_name =  "{0}{1}_{2}.xml".format(country_code, company.tax_id, make_autoname())
 	return (frappe.get_site_path('public', 'files', file_name))
 
 def get_number_from_name(doc_name, is_amended=False):

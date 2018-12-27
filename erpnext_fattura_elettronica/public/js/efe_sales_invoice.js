@@ -35,7 +35,7 @@ function add_export_button(frm) {
         frm.add_custom_button("Export XML", function() {
             var w = window.open(
                 frappe.urllib.get_full_url(
-                    "/api/method/erpnext_fattura_elettronica.erpnext_fattura_elettronica.doctype.efe_xml_export.efe_xml_export.generate_single_invoice?"
+                    "/api/method/erpnext_fattura_elettronica.export_invoices.generate_single_invoice?"
                     + "invoice_name=" + encodeURIComponent(frm.doc.name)
                 )
             );

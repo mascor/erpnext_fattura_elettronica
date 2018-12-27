@@ -1,7 +1,9 @@
 frappe.ui.form.on("Sales Invoice", {
+    onload: function(frm) {
+        add_export_button(frm);
+    },
     refresh: function(frm) {
-        
-       set_esigibilita_iva(frm);
+        set_esigibilita_iva(frm);
     },
     customer: function(frm) {
         set_esigibilita_iva(frm);
@@ -27,5 +29,21 @@ async function set_esigibilita_iva(frm) {
         frm.set_value("efe_esigibilita_iva", "S");
     } else {
         frm.set_value("efe_esigibilita_iva", "I");
+    }
+}
+
+function add_export_button(frm) {
+    if (frm.doc.docstatus == 1) {
+        frm.add_custom_button("Export XML", function() {
+            var w = window.open(
+                frappe.urllib.get_full_url(
+                    "/api/method/erpnext_fattura_elettronica.erpnext_fattura_elettronica.doctype.efe_xml_export.efe_xml_export.generate_single_invoice?"
+                    + "invoice_name=" + encodeURIComponent(frm.doc.name)
+                )
+            );
+            if (!w) {
+                frappe.msgprint(__("Please enable pop-ups")); return;
+            }
+        });
     }
 }

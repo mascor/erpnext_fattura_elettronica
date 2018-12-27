@@ -396,3 +396,20 @@ def get_document_type(invoice):
 	#TODO: 
 	# 1. Improve condition for TDO2 
 	# 2. Add conditions for TD03, TD05, TD06
+
+@frappe.whitelist()
+def generate_single_invoice(invoice_name):
+	invoice = frappe.get_doc("Sales Invoice", invoice_name)
+	invoice_data = {
+		"customer": frappe.get_doc("Customer", invoice.customer),
+		"company": frappe.get_doc("Company", invoice.company),
+		"invoices": [invoice]
+	}
+	
+	exported_file = generate_electronic_invoice(invoice_data)
+	with open(exported_file, 'rb') as fileobj:
+		filedata = fileobj.read()
+
+	frappe.local.response.filename = exported_file
+	frappe.local.response.filecontent = filedata
+	frappe.local.response.type = "download"

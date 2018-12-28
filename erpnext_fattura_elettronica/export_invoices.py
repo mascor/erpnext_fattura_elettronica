@@ -201,7 +201,7 @@ def make_invoice_body(invoice_data):
 
 	ET.SubElement(dati_generali_documento, 'Divisa').text = "EUR"
 	ET.SubElement(dati_generali_documento, 'Data').text = str(invoice.posting_date)
-	ET.SubElement(dati_generali_documento, 'Numero').text = get_number_from_name(invoice.name, invoice.amended_from != "")
+	ET.SubElement(dati_generali_documento, 'Numero').text = get_number_from_name(invoice.name, invoice.amended_from != None)
 	
 	if len(invoice.taxes):
 		bollo = next((tax for tax in invoice.taxes if "bollo" in tax.account_head.lower()), None)
@@ -245,6 +245,9 @@ def make_invoice_body(invoice_data):
 
 	riepilogo = frappe._dict()
 
+	default_vat_account = frappe.db.get_value("Company", invoice.company, "efe_default_vat_account")
+	default_vat_account_name = frappe.db.get_value("Account", default_vat_account, "account_name")
+
 	for item in invoice.items:
 		dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DettaglioLinee')
 		ET.SubElement(dettaglio_linee, 'NumeroLinea').text = str(item.idx)
@@ -256,8 +259,8 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(item.rate)
 		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(item.amount)
 
-		tax_rate = sum([tax.get('tax_rate', 0) for d, tax in itemised_tax.get(item.item_code).items() if "VAT" in d])
-		tax_amount = sum([tax.get('tax_amount', 0) for d, tax in itemised_tax.get(item.item_code).items() if "VAT" in d])
+		tax_rate = sum([tax.get('tax_rate', 0) for d, tax in itemised_tax.get(item.item_code).items() if d == default_vat_account_name])
+		tax_amount = sum([tax.get('tax_amount', 0) for d, tax in itemised_tax.get(item.item_code).items() if d == default_vat_account_name])
 		riepilogo.setdefault(tax_rate, {"tax_amount": 0.0, "taxable_amount":0.0, "natura": ""})
 		riepilogo[tax_rate]["taxable_amount"] += item.net_amount
 		riepilogo[tax_rate]["tax_amount"] += tax_amount

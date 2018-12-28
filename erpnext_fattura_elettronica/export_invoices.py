@@ -246,7 +246,10 @@ def make_invoice_body(invoice_data):
 	riepilogo = frappe._dict()
 
 	default_vat_account = frappe.db.get_value("Company", invoice.company, "efe_default_vat_account")
-	default_vat_account_name = frappe.db.get_value("Account", default_vat_account, "account_name")
+	
+	vat_tax_row = next((tax_row for tax_row in invoice.taxes if tax_row.account_head == default_vat_account), None)
+	if not vat_tax_row:
+		frappe.throw(_("Invoice must have a tax row for VAT"))
 
 	for item in invoice.items:
 		dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DettaglioLinee')
@@ -259,8 +262,8 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(item.rate)
 		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(item.amount)
 
-		tax_rate = sum([tax.get('tax_rate', 0) for d, tax in itemised_tax.get(item.item_code).items() if d == default_vat_account_name])
-		tax_amount = sum([tax.get('tax_amount', 0) for d, tax in itemised_tax.get(item.item_code).items() if d == default_vat_account_name])
+		tax_rate = sum([tax.get('tax_rate', 0) for d, tax in itemised_tax.get(item.item_code).items() if d == vat_tax_row.description])
+		tax_amount = sum([tax.get('tax_amount', 0) for d, tax in itemised_tax.get(item.item_code).items() if d == vat_tax_row.description])
 		riepilogo.setdefault(tax_rate, {"tax_amount": 0.0, "taxable_amount":0.0, "natura": ""})
 		riepilogo[tax_rate]["taxable_amount"] += item.net_amount
 		riepilogo[tax_rate]["tax_amount"] += tax_amount
@@ -268,8 +271,7 @@ def make_invoice_body(invoice_data):
 		if tax_rate == 0.0 and tax_amount == 0.0:
 			natura =  frappe.db.get_value("Item Tax", {"parent":item.item_code}, "efe_natura")
 			if not natura:
-				zero_tax_row = next((tax_row for tax_row in invoice.taxes if tax_row.rate == 0.0 and tax_row.tax_amount == 0.0), None) #TODO: VAT account in Settings
-				natura = zero_tax_row.efe_natura
+				natura = vat_tax_row.efe_natura #If Rate and Amount are zero, naturally, the only tax row will be the VAT tax row.
 
 				if not natura:
 					frappe.throw(_("Please set Natura for item %s in either Item Tax or Sales Taxes and Charges Template" % item.item_name))

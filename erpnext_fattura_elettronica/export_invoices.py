@@ -357,7 +357,8 @@ def validate_customer(customer):
 	if customer.efe_codice_destinatario == "0000000":
 		if (customer.customer_type == _("Company") and not customer.tax_id):
 			frappe.throw(_("Please set Tax ID for customer %s" % customer.customer_name or customer.name))
-		elif not customer.efe_codice_fiscale:
+		
+		if (customer.customer_type == _("Individual") and not customer.efe_codice_fiscale):
 			frappe.throw(_("Please set Codice Fiscale for customer %s" % customer.customer_name or customer.name))
 	
 	if not get_default_address('Customer', customer.name):

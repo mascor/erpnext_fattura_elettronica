@@ -205,13 +205,6 @@ def make_invoice_body(invoice_data):
 	
 	if len(invoice.taxes):
 		bollo = next((tax for tax in invoice.taxes if "bollo" in tax.account_head.lower()), None)
-		ritenuta =next ((tax for tax in invoice.taxes if "iva" in tax.account_head.lower()), None)
-		if ritenuta:
-			dati_ritenuta = ET.SubElement(dati_generali_documento, 'DatiRitenuta')
-			ET.SubElement(dati_ritenuta, 'TipoRitenuta').text = ritenuta.account_head
-			ET.SubElement(dati_ritenuta, 'ImportoRitenuta').text = ritenuta.account_head
-			ET.SubElement(dati_ritenuta, 'AliquotaRitenuta').text = ritenuta.account_head
-			ET.SubElement(dati_ritenuta, 'CausalePagamento').text = "IVA" #Confirm
 		if bollo:
 			dati_bollo = ET.SubElement(dati_generali_documento, 'DatiBollo')
 			ET.SubElement(dati_bollo, 'BolloVirtuale').text = "SI"

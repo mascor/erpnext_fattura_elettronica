@@ -5,6 +5,9 @@ frappe.ui.form.on("Sales Invoice", {
     },
     customer: function(frm) {
         set_esigibilita_iva(frm);
+    },
+    company: function(frm) {
+        set_esigibilita_iva(frm);
     }
 });
 
@@ -22,7 +25,7 @@ async function set_esigibilita_iva(frm) {
         "efe_is_pa");
 
     if (e_iva_response && e_iva_response.message.efe_esigibilita_iva) {
-        frm.set_value("efe_esigibilita_iva", esigibilita_iva.message.efe_esigibilita_iva);
+        frm.set_value("efe_esigibilita_iva", e_iva_response.message.efe_esigibilita_iva);
     } else if (is_pa_response && is_pa_response.message.efe_is_pa) {
         frm.set_value("efe_esigibilita_iva", "S");
     } else {

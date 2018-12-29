@@ -167,6 +167,8 @@ def make_customer_info(customer):
 		id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIVA')
 		ET.SubElement(id_fiscale_iva, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
 		ET.SubElement(id_fiscale_iva, 'IdCodice').text = format_tax_id(customer.tax_id)
+		if customer.efe_codice_fiscale:
+			ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
 		anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
 		ET.SubElement(anagrafica, 'Denominazione').text = customer.customer_name
 	else:

@@ -98,7 +98,10 @@ def make_transmission_data(customer, company):
 	id_trasmittente = ET.SubElement(dati_trasmissione, 'IdTrasmittente')
 	
 	ET.SubElement(id_trasmittente, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
-	ET.SubElement(id_trasmittente, 'IdCodice').text = format_tax_id(company.tax_id)
+	
+	#CF will be set for individual companies. Use this instead of tax_id. Tax id is applicable only for non-individual companies.
+	fiscal_identifier = company.efe_codice_fiscale if company.efe_codice_fiscale else format_tax_id(company.tax_id)
+	ET.SubElement(id_trasmittente, 'IdCodice').text = fiscal_identifier
 	ET.SubElement(dati_trasmissione, 'ProgressivoInvio').text = str(make_autoname())
 
 	is_pa = frappe.db.get_value("Customer Group", customer.customer_group, "efe_is_pa")

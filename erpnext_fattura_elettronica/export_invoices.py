@@ -128,7 +128,8 @@ def make_company_info(company):
 
 	id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIVA')
 	ET.SubElement(id_fiscale_iva, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
-	ET.SubElement(id_fiscale_iva, 'IdCodice').text = company.tax_id
+	fiscal_identifier = format_tax_id(company.tax_id) if company.tax_id else company.efe_codice_fiscale 
+	ET.SubElement(id_fiscale_iva, 'IdCodice').text = fiscal_identifier
 	
 	if company.efe_codice_fiscale:
 		ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = company.efe_codice_fiscale
@@ -347,8 +348,8 @@ def export_zip(files, output_filename):
 	frappe.local.response.type = "download"
 
 def validate_company(company):
-	if not company.tax_id:
-		frappe.throw(_("Please set Tax ID for company %s" % company.name))
+	if not company.tax_id and not company.efe_codice_fiscale:
+		frappe.throw(_("Please set either Tax ID or Codice Fiscale for company %s" % company.name))
 	
 	if not get_default_address('Company', company.name):
 		frappe.throw(_("Please set the address for company %s" % company.name))

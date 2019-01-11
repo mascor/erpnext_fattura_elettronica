@@ -215,7 +215,7 @@ def make_invoice_body(invoice_data):
 			dati_bollo = ET.SubElement(dati_generali_documento, 'DatiBollo')
 			ET.SubElement(dati_bollo, 'BolloVirtuale').text = "SI"
 			ET.SubElement(dati_bollo, 'ImportoBollo').text = format_float(bollo.tax_amount)
-	ET.SubElement(dati_generali_documento, 'ImportoTotaleDocumento').text = format_float(invoice.grand_total)
+	ET.SubElement(dati_generali_documento, 'ImportoTotaleDocumento').text = format_float(abs(invoice.grand_total))
 	ET.SubElement(dati_generali_documento, 'Causale').text = "VENDITA" #CAUSALE as select field
 	
 	delivery_notes = frappe.get_all("Delivery Note", 
@@ -257,9 +257,9 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(codice_articolo, 'CodiceTipo').text = "CODICE"
 		ET.SubElement(codice_articolo, 'CodiceValore').text = item.item_code
 		ET.SubElement(dettaglio_linee, 'Descrizione').text = item.item_name
-		ET.SubElement(dettaglio_linee, 'Quantita').text = format_float(item.qty) 
-		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(item.rate)
-		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(item.amount)
+		ET.SubElement(dettaglio_linee, 'Quantita').text = format_float(abs(item.qty)) 
+		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(abs(item.rate))
+		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(abs(item.amount))
 
 		tax_rate = sum([tax.get('tax_rate', 0) for d, tax in itemised_tax.get(item.item_code).items() if d == vat_tax_row.description])
 		tax_amount = sum([tax.get('tax_amount', 0) for d, tax in itemised_tax.get(item.item_code).items() if d == vat_tax_row.description])
@@ -284,8 +284,8 @@ def make_invoice_body(invoice_data):
 		if value.get("natura"):
 			ET.SubElement(dati_riepilogo, 'Natura').text = value.get("natura")
 		#Can two items with zero tax have different Natura each?
-		ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = format_float(value.get("taxable_amount"))
-		ET.SubElement(dati_riepilogo, 'Imposta').text = format_float(value.get("tax_amount"))
+		ET.SubElement(dati_riepilogo, 'ImponibileImporto').text = format_float(abs(value.get("taxable_amount")))
+		ET.SubElement(dati_riepilogo, 'Imposta').text = format_float(abs(value.get("tax_amount")))
 		ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = invoice.get("efe_esigibilita_iva")
 
 	### DatiPagamento

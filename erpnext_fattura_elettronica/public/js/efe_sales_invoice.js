@@ -1,13 +1,9 @@
 frappe.ui.form.on("Sales Invoice", {
+    onload: function(frm) {
+        set_esigibilita_iva(frm);
+    },
     refresh: function(frm) {
         add_export_button(frm);
-        set_esigibilita_iva(frm);
-    },
-    customer: function(frm) {
-        set_esigibilita_iva(frm);
-    },
-    company: function(frm) {
-        set_esigibilita_iva(frm);
     }
 });
 

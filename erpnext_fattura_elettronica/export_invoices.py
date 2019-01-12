@@ -218,6 +218,10 @@ def make_invoice_body(invoice_data):
 	ET.SubElement(dati_generali_documento, 'ImportoTotaleDocumento').text = format_float(abs(invoice.grand_total))
 	ET.SubElement(dati_generali_documento, 'Causale').text = "VENDITA" #CAUSALE as select field
 	
+	#A valid value in return_against indicates that the invoice is a credit note. Set DatiFattureCollegate if return_against is valid.
+	if invoice.return_against:
+		ET.SubElement(dati_generali, 'DatiFattureCollegate').text = get_number_from_name(invoice.return_against, invoice.amended_from != None)
+	
 	delivery_notes = frappe.get_all("Delivery Note", 
 		filters=[["Delivery Note Item", "against_sales_invoice", "=", invoice.name]], 
 		fields=["name", "posting_date", "efe_transporter_tax_id", "efe_transporter_codice_fiscale"])

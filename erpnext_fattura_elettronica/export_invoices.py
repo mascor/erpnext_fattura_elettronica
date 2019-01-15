@@ -49,15 +49,17 @@ def generate_electronic_invoice(invoice):
 	ROOT_TAG = "{%s}FatturaElettronica" % namespace_map["p"]
 	SCHEMA_LOCATION_KEY = "{%s}schemaLocation" % namespace_map["xsi"]
 
+	customer = frappe.get_doc("Customer", invoice.customer) #customer_invoice_set.get("customer")
+	is_pa = frappe.db.get_value("Customer Group", customer.customer_group, "efe_is_pa")
+
 	root = ET.Element(ROOT_TAG, 
 		attrib={SCHEMA_LOCATION_KEY : schemaLocation},
 		nsmap=namespace_map,
-		versione="FPR12"
+		versione="FPA12" if is_pa else "FPR12"  
 	)
 
 	invoice_header = ET.SubElement(root, 'FatturaElettronicaHeader')
 	
-	customer = frappe.get_doc("Customer", invoice.customer) #customer_invoice_set.get("customer")
 	company = frappe.get_doc("Company", invoice.company) #customer_invoice_set.get("company")
 
 	validate_company(company)
@@ -167,19 +169,25 @@ def make_customer_info(customer):
 	
 	dati_anagrafici = ET.SubElement(cessionario_committente, 'DatiAnagrafici')
 
-	if customer.customer_type == _("Company"):
-		id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIVA')
-		ET.SubElement(id_fiscale_iva, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
-		ET.SubElement(id_fiscale_iva, 'IdCodice').text = format_tax_id(customer.tax_id)
-		if customer.efe_codice_fiscale:
-			ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
-		anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
-		ET.SubElement(anagrafica, 'Denominazione').text = customer.customer_name
-	else:
+	if customer.customer_type == _("Individual"):
 		ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
 		anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
 		ET.SubElement(anagrafica, 'Nome').text = customer.efe_first_name
 		ET.SubElement(anagrafica, 'Cognome').text = customer.efe_last_name
+	else:
+		is_pa = frappe.db.get_value("Customer Group", customer.customer_group, "efe_is_pa")
+
+		if is_pa:
+			ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
+		else:
+			id_fiscale_iva =  ET.SubElement(dati_anagrafici, 'IdFiscaleIVA')
+			ET.SubElement(id_fiscale_iva, 'IdPaese').text = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
+			ET.SubElement(id_fiscale_iva, 'IdCodice').text = format_tax_id(customer.tax_id)
+			if customer.efe_codice_fiscale:
+				ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
+
+		anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
+		ET.SubElement(anagrafica, 'Denominazione').text = customer.customer_name[:78] + (customer.customer_name[78:] and '..') 
 
 	address_name = get_default_address("Customer", customer.name)
 	address = frappe.get_doc("Address", address_name)
@@ -187,7 +195,7 @@ def make_customer_info(customer):
 	ET.SubElement(sede, 'Indirizzo').text = address.address_line1
 	if address.efe_numero_civico:
 		ET.SubElement(sede, 'NumeroCivico').text = address.efe_numero_civico
-	ET.SubElement(sede, 'CAP').text = address.pincode
+	ET.SubElement(sede, 'CAP').text = address.pincode.strip()
 	ET.SubElement(sede, 'Comune').text = address.city
 	if address.state:
 		ET.SubElement(sede, 'Provincia').text = address.state
@@ -220,7 +228,8 @@ def make_invoice_body(invoice_data):
 	
 	#A valid value in return_against indicates that the invoice is a credit note. Set DatiFattureCollegate if return_against is valid.
 	if invoice.return_against:
-		ET.SubElement(dati_generali, 'DatiFattureCollegate').text = get_number_from_name(invoice.return_against, invoice.amended_from != None)
+		dati_fatture_collegate = ET.SubElement(dati_generali, 'DatiFattureCollegate')
+		ET.SubElement(dati_fatture_collegate, 'IdDocumento').text = get_number_from_name(invoice.return_against, invoice.amended_from != None)
 	
 	delivery_notes = frappe.get_all("Delivery Note", 
 		filters=[["Delivery Note Item", "against_sales_invoice", "=", invoice.name]], 
@@ -262,8 +271,8 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(codice_articolo, 'CodiceValore').text = item.item_code
 		ET.SubElement(dettaglio_linee, 'Descrizione').text = item.item_name
 		ET.SubElement(dettaglio_linee, 'Quantita').text = format_float(abs(item.qty)) 
-		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(abs(item.rate))
-		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(abs(item.amount))
+		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(abs(item.net_rate))
+		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(abs(item.net_amount))
 
 		tax_rate = sum([tax.get('tax_rate', 0) for d, tax in itemised_tax.get(item.item_code).items() if d == vat_tax_row.description])
 		tax_amount = sum([tax.get('tax_amount', 0) for d, tax in itemised_tax.get(item.item_code).items() if d == vat_tax_row.description])

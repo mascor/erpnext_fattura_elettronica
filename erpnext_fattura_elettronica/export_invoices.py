@@ -323,10 +323,22 @@ def make_fname(company):
 	file_name =  "{0}{1}_{2}.xml".format(country_code, company.tax_id, make_autoname())
 	return (frappe.get_site_path('public', 'files', file_name))
 
-def get_number_from_name(doc_name, is_amended=False):
-	index = -1 if not is_amended else 1
-	return str(int(doc_name.split("-")[index]))
+def get_number_from_name(doc_name, is_amended=False):	
+	name_parts = doc_name.split("-")
 
+	numero_option = frappe.db.get_value("EFE Settings", "EFE Settings", "numero_option")
+
+	if numero_option == "Number":
+		if is_amended:
+			return name_parts[-2:-1][0]
+		else:
+			return name_parts[-1:][0]
+	else:
+		if is_amended:
+			return "-".join(doc_name.split("-")[:-1])
+		else:
+			return doc_name
+	
 def format_float(float_number):
 	return "%.2f" % float_number
 

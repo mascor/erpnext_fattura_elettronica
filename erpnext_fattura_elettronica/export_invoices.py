@@ -216,8 +216,17 @@ def make_invoice_body(invoice_data):
 	ET.SubElement(dati_generali_documento, 'Divisa').text = "EUR"
 	ET.SubElement(dati_generali_documento, 'Data').text = str(invoice.posting_date)
 	ET.SubElement(dati_generali_documento, 'Numero').text = get_number_from_name(invoice.name, invoice.amended_from != None)
-	
-	if len(invoice.taxes):
+
+	#TODO: Set default account in settings / company and pick from there
+	ritenuta = get_ritenuta_data(invoice.name, invoice.grand_total)
+	if ritenuta:
+		dati_ritenuta = ET.SubElement(dati_generali_documento, 'DatiRitenuta')
+		ET.SubElement(dati_ritenuta, 'TipoRitenuta').text = "RT02"
+		ET.SubElement(dati_ritenuta, 'ImportoRitenuta').text = format_float(ritenuta.tax_amount)
+		ET.SubElement(dati_ritenuta, 'AliquotaRitenuta').text = format_float(ritenuta.tax_rate)
+		ET.SubElement(dati_ritenuta, 'CausalePagamento').text = frappe.db.get_value("EFE Settings", "EFE Settings", "causale_pagamento")
+
+	if len(invoice.taxes):		
 		bollo = next((tax for tax in invoice.taxes if "bollo" in tax.account_head.lower()), None)
 		if bollo:
 			dati_bollo = ET.SubElement(dati_generali_documento, 'DatiBollo')
@@ -417,3 +426,22 @@ def generate_single_invoice(invoice_name):
 	frappe.local.response.filename = os.path.basename(exported_file)
 	frappe.local.response.filecontent = filedata
 	frappe.local.response.type = "download"
+
+def get_ritenuta_data(invoice_name, invoice_total):
+	out = frappe._dict(tax_rate=0.0, tax_amount=0.0)
+
+	ritenuta_account = frappe.db.get_value("EFE Settings", "EFE Settings", "ritenuta_account")
+	advance_je_refs = frappe.get_all("Sales Invoice Advance", filters={"parent": invoice_name, "reference_type":"Journal Entry"}, 
+		fields=["reference_name"])
+
+	for je in advance_je_refs:
+		je_items = frappe.get_all("Journal Entry Account", filters={"parent": je.get("reference_name")}, fields=["account", "debit"])
+		for je_item in je_items:
+			if je_item.get("account") == ritenuta_account:
+				debit = je_item.get("debit")
+				rate = (debit * 100) / invoice_total
+				out.tax_rate = rate
+				out.tax_amount = debit
+				break
+
+	return out

@@ -357,9 +357,9 @@ def get_number_from_name(doc_name, is_amended=False):
 
 	if numero_option == "Number":
 		if is_amended:
-			return name_parts[-2:-1][0]
+			return int(name_parts[-2:-1][0])
 		else:
-			return name_parts[-1:][0]
+			return int(name_parts[-1:][0])
 	else:
 		if is_amended:
 			return "-".join(doc_name.split("-")[:-1])

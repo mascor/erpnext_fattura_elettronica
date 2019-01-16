@@ -218,7 +218,7 @@ def make_invoice_body(invoice_data):
 	ET.SubElement(dati_generali_documento, 'Numero').text = get_number_from_name(invoice.name, invoice.amended_from != None)
 
 	#TODO: Set default account in settings / company and pick from there
-	ritenuta = get_ritenuta_data(invoice.name, invoice.grand_total)
+	ritenuta = get_ritenuta_data(invoice.name, invoice.total)
 	if ritenuta:
 		dati_ritenuta = ET.SubElement(dati_generali_documento, 'DatiRitenuta')
 		ET.SubElement(dati_ritenuta, 'TipoRitenuta').text = "RT02"
@@ -311,28 +311,37 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = invoice.get("efe_esigibilita_iva")
 
 	### DatiPagamento
-	payment_entry_names = frappe.get_all("Payment Entry", 
-		filters=[
-			["Payment Entry Reference", "reference_doctype", "=", "Sales Invoice"], 
-			["Payment Entry Reference", "reference_name", "=", invoice.name]
-		]
-	)
-	
-	for payment_entry_name in payment_entry_names:
-		payment_entry = frappe.get_doc("Payment Entry", payment_entry_name)
-		dati_pagamento = ET.SubElement(invoice_body, 'DatiPagamento')
-		ET.SubElement(dati_pagamento, 'CondizioniPagamento').text = "TP01" if len(invoice.payment_schedule) > 1 else "TP02"
-		
-		dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DettaglioPagamento')
-		ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = frappe.db.get_value("Mode of Payment", payment_entry.mode_of_payment, "efe_code")
-		#ET.SubElement(dettaglio_pagamento, 'DataScadenzaPagamento').text = str(payment_entry.posting_date)
+	dati_pagamento = ET.SubElement(invoice_body, 'DatiPagamento')
+	ET.SubElement(dati_pagamento, 'CondizioniPagamento').text = "TP02" #Complete Payment
+	dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DettaglioPagamento')
+ 	ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = frappe.db.get_value("Mode of Payment", invoice.mode_of_payment, "efe_code")
+	if ritenuta:
+		ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(invoice.grand_total - ritenuta.tax_amount)
+	else:
+		ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(invoice.grand_total)
 
-		#Get amount allocated for the specific invoice
-		paid_amount_for_invoice = next(
-			(ref.allocated_amount for ref in payment_entry.references 
-			if ref.reference_doctype == "Sales Invoice" and ref.reference_name == invoice.name)
-		)
-		ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(paid_amount_for_invoice)
+	# payment_entry_names = frappe.get_all("Payment Entry", 
+	# 	filters=[
+	# 		["Payment Entry Reference", "reference_doctype", "=", "Sales Invoice"], 
+	# 		["Payment Entry Reference", "reference_name", "=", invoice.name]
+	# 	]
+	# )
+	
+	# for payment_entry_name in payment_entry_names:
+	# 	payment_entry = frappe.get_doc("Payment Entry", payment_entry_name)
+	# 	dati_pagamento = ET.SubElement(invoice_body, 'DatiPagamento')
+	# 	ET.SubElement(dati_pagamento, 'CondizioniPagamento').text = "TP01" if len(invoice.payment_schedule) > 1 else "TP02"
+		
+	# 	dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DettaglioPagamento')
+	# 	ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = frappe.db.get_value("Mode of Payment", payment_entry.mode_of_payment, "efe_code")
+	# 	#ET.SubElement(dettaglio_pagamento, 'DataScadenzaPagamento').text = str(payment_entry.posting_date)
+
+	# 	#Get amount allocated for the specific invoice
+	# 	paid_amount_for_invoice = next(
+	# 		(ref.allocated_amount for ref in payment_entry.references 
+	# 		if ref.reference_doctype == "Sales Invoice" and ref.reference_name == invoice.name)
+	# 	)
+	# 	ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(paid_amount_for_invoice)
 
 	return invoice_body
 
@@ -428,8 +437,6 @@ def generate_single_invoice(invoice_name):
 	frappe.local.response.type = "download"
 
 def get_ritenuta_data(invoice_name, invoice_total):
-	out = frappe._dict(tax_rate=0.0, tax_amount=0.0)
-
 	ritenuta_account = frappe.db.get_value("EFE Settings", "EFE Settings", "ritenuta_account")
 	advance_je_refs = frappe.get_all("Sales Invoice Advance", filters={"parent": invoice_name, "reference_type":"Journal Entry"}, 
 		fields=["reference_name"])
@@ -440,8 +447,7 @@ def get_ritenuta_data(invoice_name, invoice_total):
 			if je_item.get("account") == ritenuta_account:
 				debit = je_item.get("debit")
 				rate = (debit * 100) / invoice_total
-				out.tax_rate = rate
-				out.tax_amount = debit
-				break
+				out = frappe._dict(tax_rate=rate, tax_amount=debit)
+				return out
 
-	return out
+	return None

@@ -311,14 +311,15 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(dati_riepilogo, 'EsigibilitaIVA').text = invoice.get("efe_esigibilita_iva")
 
 	### DatiPagamento
-	dati_pagamento = ET.SubElement(invoice_body, 'DatiPagamento')
-	ET.SubElement(dati_pagamento, 'CondizioniPagamento').text = "TP02" #Complete Payment
-	dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DettaglioPagamento')
- 	ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = frappe.db.get_value("Mode of Payment", invoice.mode_of_payment, "efe_code")
-	if ritenuta:
-		ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(invoice.grand_total - ritenuta.tax_amount)
-	else:
-		ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(invoice.grand_total)
+	if hasattr(invoice, "mode_of_payment"):
+		dati_pagamento = ET.SubElement(invoice_body, 'DatiPagamento')
+		ET.SubElement(dati_pagamento, 'CondizioniPagamento').text = "TP02" #Complete Payment
+		dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DettaglioPagamento')
+		ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = frappe.db.get_value("Mode of Payment", invoice.mode_of_payment, "efe_code")
+		if ritenuta:
+			ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(invoice.grand_total - ritenuta.tax_amount)
+		else:
+			ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(invoice.grand_total)
 
 	# payment_entry_names = frappe.get_all("Payment Entry", 
 	# 	filters=[

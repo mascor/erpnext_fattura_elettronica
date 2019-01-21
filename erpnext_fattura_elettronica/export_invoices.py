@@ -340,10 +340,14 @@ def make_invoice_body(invoice_data):
 			
 			if payment_term.efe_bank_account:
 				bank_account = frappe.get_doc("EFE Bank Account", payment_term.efe_bank_account)
-				ET.SubElement(dettaglio_pagamento, 'IBAN').text = bank_account.iban
-				ET.SubElement(dettaglio_pagamento, 'ABI').text = bank_account.abi
-				ET.SubElement(dettaglio_pagamento, 'CAB').text = bank_account.cab
-				ET.SubElement(dettaglio_pagamento, 'BIC').text = bank_account.bic
+				if bank_account.iban:
+					ET.SubElement(dettaglio_pagamento, 'IBAN').text = bank_account.iban
+				if bank_account.abi:
+					ET.SubElement(dettaglio_pagamento, 'ABI').text = bank_account.abi
+				if bank_account.cab:
+					ET.SubElement(dettaglio_pagamento, 'CAB').text = bank_account.cab
+				if bank_account.bic:
+					ET.SubElement(dettaglio_pagamento, 'BIC').text = bank_account.bic
 	# payment_entry_names = frappe.get_all("Payment Entry", 
 	# 	filters=[
 	# 		["Payment Entry Reference", "reference_doctype", "=", "Sales Invoice"], 

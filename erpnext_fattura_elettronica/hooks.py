@@ -164,6 +164,8 @@ fixtures = [
             "Account-efe_natura",
             "Item Tax-efe_natura",
             "Territory-efe_cadastral_code",
+            "Payment Schedule-efe_mode_of_payment",
+            "Payment Schedule-efe_bank_account",
         ]]]
     },
 ]

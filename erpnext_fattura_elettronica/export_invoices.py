@@ -235,6 +235,17 @@ def make_invoice_body(invoice_data):
 	ET.SubElement(dati_generali_documento, 'ImportoTotaleDocumento').text = format_float(abs(invoice.grand_total))
 	ET.SubElement(dati_generali_documento, 'Causale').text = "VENDITA" #CAUSALE as select field
 	
+	if invoice.po_no and invoice.po_date:
+		dati_ordine_acquisto = ET.SubElement(dati_generali, 'DatiOrdineAcquisto')
+		ET.SubElement(dati_ordine_acquisto, 'IdDocumento').text = invoice.po_no
+		ET.SubElement(dati_ordine_acquisto, 'Data').text = invoice.po_date
+		if invoice.efe_codice_commessa_convenzione:
+			ET.SubElement(dati_ordine_acquisto, 'CodiceCommessaConvenzione').text = invoice.efe_codice_commessa_convenzione
+		if invoice.efe_codice_cup:
+			ET.SubElement(dati_ordine_acquisto, 'CodiceCUP').text = invoice.efe_codice_cup
+		if invoice.efe_codice_cig:
+			ET.SubElement(dati_ordine_acquisto, 'CodiceCIG').text = invoice.efe_codice_cig
+
 	#A valid value in return_against indicates that the invoice is a credit note. Set DatiFattureCollegate if return_against is valid.
 	if invoice.return_against:
 		dati_fatture_collegate = ET.SubElement(dati_generali, 'DatiFattureCollegate')

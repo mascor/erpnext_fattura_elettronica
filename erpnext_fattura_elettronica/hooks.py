@@ -157,10 +157,13 @@ fixtures = [
             "Company-efe_default_vat_account",
             "Sales Invoice-efe_esigibilita_iva",
             "Sales Invoice-sb_efe1",
+            "Sales Invoice-efe_codice_commessa_convenzione",
+            "Sales Invoice-efe_codice_cup",
+            "Sales Invoice-efe_codice_cig",
             "Sales Taxes and Charges-efe_natura",
             "Account-efe_natura",
             "Item Tax-efe_natura",
-            "Territory-efe_cadastral_code"
+            "Territory-efe_cadastral_code",
         ]]]
     },
 ]

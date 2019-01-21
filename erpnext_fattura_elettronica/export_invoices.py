@@ -64,7 +64,7 @@ def generate_electronic_invoice(invoice):
 
 	validate_company(company)
 	validate_customer(customer)
-	
+
 	dati_trasmissione = make_transmission_data(customer, company)
 	invoice_header.append(dati_trasmissione)
 
@@ -75,10 +75,11 @@ def generate_electronic_invoice(invoice):
 	invoice_header.append(cessionario_committente)
 
 	#for invoice in customer_invoice_set.get("invoices"):
+	invoice_body = None
 	try:
 		invoice_body = make_invoice_body(invoice)
-	except Exception as e:
-		frappe.throw(e, title=_("Error creating invoice %s" % invoice.name))
+	except Exception as ex:
+		frappe.log_error(title=_("Error creating invoice %s" % str(invoice.name)), message=ex)
 
 	root.append(invoice_body)
  
@@ -89,9 +90,8 @@ def generate_electronic_invoice(invoice):
 	try:
 		with open(file_name, "w") as outputfile:
 			outputfile.write(etree_string)
-		
 	except Exception as ex:
-		frappe.log_error("Unable to save XML file.")
+		frappe.log_error(title=_("Unable to save XML file."), message=ex)
 
 	return file_name
 
@@ -385,9 +385,9 @@ def get_number_from_name(doc_name, is_amended=False):
 
 	if numero_option == "Number":
 		if is_amended:
-			return int(name_parts[-2:-1][0])
+			return str(int(name_parts[-2:-1][0]))
 		else:
-			return int(name_parts[-1:][0])
+			return str(int(name_parts[-1:][0]))
 	else:
 		if is_amended:
 			return "-".join(doc_name.split("-")[:-1])

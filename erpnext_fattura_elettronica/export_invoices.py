@@ -238,7 +238,7 @@ def make_invoice_body(invoice_data):
 	if invoice.po_no and invoice.po_date:
 		dati_ordine_acquisto = ET.SubElement(dati_generali, 'DatiOrdineAcquisto')
 		ET.SubElement(dati_ordine_acquisto, 'IdDocumento').text = invoice.po_no
-		ET.SubElement(dati_ordine_acquisto, 'Data').text = invoice.po_date
+		ET.SubElement(dati_ordine_acquisto, 'Data').text = str(invoice.po_date)
 		if invoice.efe_codice_commessa_convenzione:
 			ET.SubElement(dati_ordine_acquisto, 'CodiceCommessaConvenzione').text = invoice.efe_codice_commessa_convenzione
 		if invoice.efe_codice_cup:
@@ -465,9 +465,13 @@ def generate_single_invoice(invoice_name):
 	frappe.local.response.type = "download"
 
 def get_ritenuta_data(invoice_name, invoice_total):
-	ritenuta_account = frappe.db.get_value("EFE Settings", "EFE Settings", "ritenuta_account")
 	advance_je_refs = frappe.get_all("Sales Invoice Advance", filters={"parent": invoice_name, "reference_type":"Journal Entry"}, 
 		fields=["reference_name"])
+	
+	if not len(advance_je_refs):
+		return None
+	
+	ritenuta_account = frappe.db.get_value("EFE Settings", "EFE Settings", "ritenuta_account")
 
 	for je in advance_je_refs:
 		je_items = frappe.get_all("Journal Entry Account", filters={"parent": je.get("reference_name")}, fields=["account", "debit"])

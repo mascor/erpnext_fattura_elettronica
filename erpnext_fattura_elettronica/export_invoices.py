@@ -66,6 +66,7 @@ def generate_electronic_invoice(invoice):
 	validate_customer(customer)
 
 	progressive_number = make_autoname()
+	frappe.db.commit()
 
 	dati_trasmissione = make_transmission_data(customer, company, progressive_number)
 	invoice_header.append(dati_trasmissione)

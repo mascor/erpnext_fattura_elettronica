@@ -95,6 +95,11 @@ doctype_list_js = { "Sales Invoice" : "public/js/efe_sales_invoice_list.js" }
 # 		"on_trash": "method"
 #	}
 # }
+doc_events = {
+	"Sales Invoice": {
+		"validate": "erpnext_fattura_elettronica.efe_sales_invoice.validate",
+	}
+}
 
 # Scheduled Tasks
 # ---------------
@@ -166,6 +171,8 @@ fixtures = [
             "Territory-efe_cadastral_code",
             "Payment Schedule-efe_mode_of_payment",
             "Payment Schedule-efe_bank_account",
+            "Payment Terms Template Detail-efe_mode_of_payment",
+            "Payment Terms Template Detail-efe_bank_account"
         ]]]
     },
 ]

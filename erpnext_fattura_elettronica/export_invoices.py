@@ -65,7 +65,9 @@ def generate_electronic_invoice(invoice):
 	validate_company(company)
 	validate_customer(customer)
 
-	dati_trasmissione = make_transmission_data(customer, company)
+	progressive_number = make_autoname()
+
+	dati_trasmissione = make_transmission_data(customer, company, progressive_number)
 	invoice_header.append(dati_trasmissione)
 
 	cedente_prestatore = make_company_info(company)
@@ -85,7 +87,7 @@ def generate_electronic_invoice(invoice):
  
 	etree_string = ET.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
 
-	file_name = make_fname(company)
+	file_name = make_fname(company, progressive_number)
 
 	try:
 		with open(file_name, "w") as outputfile:
@@ -95,7 +97,7 @@ def generate_electronic_invoice(invoice):
 
 	return file_name
 
-def make_transmission_data(customer, company):
+def make_transmission_data(customer, company, progressive_number):
 	dati_trasmissione = ET.Element('DatiTrasmissione')
 	id_trasmittente = ET.SubElement(dati_trasmissione, 'IdTrasmittente')
 	
@@ -104,7 +106,7 @@ def make_transmission_data(customer, company):
 	#CF will be set for individual companies. Use this instead of tax_id. Tax id is applicable only for non-individual companies.
 	fiscal_identifier = company.efe_codice_fiscale if company.efe_codice_fiscale else format_tax_id(company.tax_id)
 	ET.SubElement(id_trasmittente, 'IdCodice').text = fiscal_identifier
-	ET.SubElement(dati_trasmissione, 'ProgressivoInvio').text = str(make_autoname())
+	ET.SubElement(dati_trasmissione, 'ProgressivoInvio').text = progressive_number
 
 	is_pa = frappe.db.get_value("Customer Group", customer.customer_group, "efe_is_pa")
 	
@@ -222,8 +224,8 @@ def make_invoice_body(invoice_data):
 	if ritenuta:
 		dati_ritenuta = ET.SubElement(dati_generali_documento, 'DatiRitenuta')
 		ET.SubElement(dati_ritenuta, 'TipoRitenuta').text = "RT02"
-		ET.SubElement(dati_ritenuta, 'ImportoRitenuta').text = format_float(ritenuta.tax_amount)
-		ET.SubElement(dati_ritenuta, 'AliquotaRitenuta').text = format_float(ritenuta.tax_rate)
+		ET.SubElement(dati_ritenuta, 'ImportoRitenuta').text = format_float(abs(ritenuta.tax_amount))
+		ET.SubElement(dati_ritenuta, 'AliquotaRitenuta').text = format_float(abs(ritenuta.tax_rate))
 		ET.SubElement(dati_ritenuta, 'CausalePagamento').text = frappe.db.get_value("EFE Settings", "EFE Settings", "causale_pagamento")
 
 	if len(invoice.taxes):		
@@ -231,7 +233,7 @@ def make_invoice_body(invoice_data):
 		if bollo:
 			dati_bollo = ET.SubElement(dati_generali_documento, 'DatiBollo')
 			ET.SubElement(dati_bollo, 'BolloVirtuale').text = "SI"
-			ET.SubElement(dati_bollo, 'ImportoBollo').text = format_float(bollo.tax_amount)
+			ET.SubElement(dati_bollo, 'ImportoBollo').text = format_float(abs(bollo.tax_amount))
 	ET.SubElement(dati_generali_documento, 'ImportoTotaleDocumento').text = format_float(abs(invoice.grand_total))
 	ET.SubElement(dati_generali_documento, 'Causale').text = "VENDITA" #CAUSALE as select field
 	
@@ -334,9 +336,9 @@ def make_invoice_body(invoice_data):
 			dettaglio_pagamento = ET.SubElement(dati_pagamento, 'DettaglioPagamento')
 			ET.SubElement(dettaglio_pagamento, 'ModalitaPagamento').text = frappe.db.get_value("Mode of Payment", payment_term.efe_mode_of_payment, "efe_code")
 			if ritenuta:
-				ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(invoice.grand_total - ritenuta.tax_amount)
+				ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(abs(invoice.grand_total - ritenuta.tax_amount))
 			else:
-				ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(invoice.grand_total)
+				ET.SubElement(dettaglio_pagamento, 'ImportoPagamento').text = format_float(abs(invoice.grand_total))
 			
 			if payment_term.efe_bank_account:
 				bank_account = frappe.get_doc("EFE Bank Account", payment_term.efe_bank_account)
@@ -373,9 +375,9 @@ def make_invoice_body(invoice_data):
 
 	return invoice_body
 
-def make_fname(company):
+def make_fname(company, progressive_number):
 	country_code = frappe.db.get_value("Country", frappe.defaults.get_defaults().get("country"), "code").upper()
-	file_name =  "{0}{1}_{2}.xml".format(country_code, company.tax_id, make_autoname())
+	file_name =  "{0}{1}_{2}.xml".format(country_code, company.tax_id, progressive_number)
 	return (frappe.get_site_path('public', 'files', file_name))
 
 def get_number_from_name(doc_name, is_amended=False):	
@@ -483,3 +485,4 @@ def get_ritenuta_data(invoice_name, invoice_total):
 				return out
 
 	return None
+	

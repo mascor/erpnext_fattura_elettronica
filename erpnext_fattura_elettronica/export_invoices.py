@@ -252,7 +252,8 @@ def make_invoice_body(invoice_data):
 	#A valid value in return_against indicates that the invoice is a credit note. Set DatiFattureCollegate if return_against is valid.
 	if invoice.return_against:
 		dati_fatture_collegate = ET.SubElement(dati_generali, 'DatiFattureCollegate')
-		ET.SubElement(dati_fatture_collegate, 'IdDocumento').text = get_number_from_name(invoice.return_against, invoice.amended_from != None)
+		return_against_amended_from = frappe.db.get_value("Sales Invoice", invoice.return_against, "amended_from")
+		ET.SubElement(dati_fatture_collegate, 'IdDocumento').text = get_number_from_name(invoice.return_against, return_against_amended_from != None)
 	
 	delivery_notes = frappe.get_all("Delivery Note", 
 		filters=[["Delivery Note Item", "against_sales_invoice", "=", invoice.name]], 

@@ -286,6 +286,8 @@ def make_invoice_body(invoice_data):
 	vat_tax_row = next((tax_row for tax_row in invoice.taxes if tax_row.account_head == default_vat_account), None)
 	if not vat_tax_row:
 		frappe.throw(_("Invoice must have a tax row for VAT"))
+	
+	item_description_option = frappe.db.get_value("EFE Settings", "item_description_option", "item_description_option")
 
 	for item in invoice.items:
 		dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DettaglioLinee')
@@ -293,7 +295,10 @@ def make_invoice_body(invoice_data):
 		codice_articolo = ET.SubElement(dettaglio_linee, 'CodiceArticolo')
 		ET.SubElement(codice_articolo, 'CodiceTipo').text = "CODICE"
 		ET.SubElement(codice_articolo, 'CodiceValore').text = item.item_code
-		ET.SubElement(dettaglio_linee, 'Descrizione').text = item.description or item.item_name
+		if item_description_option == "Item Description":
+			ET.SubElement(dettaglio_linee, 'Descrizione').text = item.description
+		else:
+			ET.SubElement(dettaglio_linee, 'Descrizione').text = item.item_name
 		ET.SubElement(dettaglio_linee, 'Quantita').text = format_float(abs(item.qty)) 
 		ET.SubElement(dettaglio_linee, 'PrezzoUnitario').text = format_float(abs(item.net_rate))
 		ET.SubElement(dettaglio_linee, 'PrezzoTotale').text = format_float(abs(item.net_amount))

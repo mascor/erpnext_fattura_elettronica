@@ -1,6 +1,6 @@
 frappe.ui.form.on("Sales Invoice", {
     onload: function(frm) {
-        set_esigibilita_iva(frm);
+        if (!frm.doc.efe_esigibilita_iva) set_esigibilita_iva(frm);
     },
     refresh: function(frm) {
         add_export_button(frm);
@@ -8,24 +8,23 @@ frappe.ui.form.on("Sales Invoice", {
 });
 
 async function set_esigibilita_iva(frm) {
-    if (frm.doc.docstatus == 1 || frm.doc.docstatus == 2) return 
-    
+    if (frm.doc.docstatus == 1 || frm.doc.docstatus == 2) return
     if(!frm.doc.company || !frm.doc.customer_group) return
 
-    var e_iva_response = await frappe.db.get_value("Company", 
-        frm.doc.company, 
+    var e_iva_response = await frappe.db.get_value("Company",
+        frm.doc.company,
         "efe_esigibilita_iva");
-    
-    var is_pa_response = await frappe.db.get_value("Customer Group", 
+
+    var is_pa_response = await frappe.db.get_value("Customer Group",
         frm.doc.customer_group,
         "efe_is_pa");
 
     if (e_iva_response && e_iva_response.message.efe_esigibilita_iva) {
         frm.set_value("efe_esigibilita_iva", e_iva_response.message.efe_esigibilita_iva);
     } else if (is_pa_response && is_pa_response.message.efe_is_pa) {
-        frm.set_value("efe_esigibilita_iva", "S");
+        frm.set_value("efe_esigibilita_iva", "S-Scissione dei Pagamenti");
     } else {
-        frm.set_value("efe_esigibilita_iva", "I");
+        frm.set_value("efe_esigibilita_iva", "I-Immediata");
     }
 }
 

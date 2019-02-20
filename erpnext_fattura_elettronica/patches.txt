@@ -1,0 +1,1 @@
+erpnext_fattura_elettronica.patches.v0_0.update_esigibilita_iva_description

@@ -296,7 +296,7 @@ def make_invoice_body(invoice_data):
 		ET.SubElement(codice_articolo, 'CodiceTipo').text = "CODICE"
 		ET.SubElement(codice_articolo, 'CodiceValore').text = item.item_code
 		if item_description_option == "Item Description":
-			ET.SubElement(dettaglio_linee, 'Descrizione').text = item.description
+			ET.SubElement(dettaglio_linee, 'Descrizione').text = frappe.utils.strip_html_tags(item.description)
 		else:
 			ET.SubElement(dettaglio_linee, 'Descrizione').text = item.item_name
 		ET.SubElement(dettaglio_linee, 'Quantita').text = format_float(abs(item.qty))

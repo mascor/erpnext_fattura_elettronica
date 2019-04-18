@@ -1,3 +1,6 @@
+## This Custom App works only with ERPNext v10.
+## Part of the code of this app was included in ERPNext V11. To use the updated version, please refer to ERPNext Project: https://github.com/frappe/erpnext
+
 ## ERPNext Fattura Elettronica ver. 0.0.1
 
 App to export electronic invoices as mandated by the Italian Government
@@ -101,9 +104,3 @@ New Doctypes:
 Reference: 
 - http://www.fatturapa.gov.it/export/fatturazione/sdi/Specifiche_tecniche_del_formato_FatturaPA_v1.2.1.pdf
 - http://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2.1/Rappresentazione_tabellare_del_tracciato_FatturaPA_versione_1.2.1.pdf
-
-## Future implementation
-
-An evolution of this process will be the capability to:
-- apply Digital Signature using smart card reader;
-- automatically send to SDI web service;

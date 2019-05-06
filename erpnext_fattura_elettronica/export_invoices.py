@@ -172,7 +172,7 @@ def make_customer_info(customer):
 
 	dati_anagrafici = ET.SubElement(cessionario_committente, 'DatiAnagrafici')
 
-	if customer.customer_type == _("Individual"):
+	if customer.customer_type == "Individual":
 		ET.SubElement(dati_anagrafici, 'CodiceFiscale').text = customer.efe_codice_fiscale
 		anagrafica = ET.SubElement(dati_anagrafici, 'Anagrafica')
 		ET.SubElement(anagrafica, 'Nome').text = customer.efe_first_name
@@ -309,6 +309,7 @@ def make_invoice_body(invoice_data):
 		riepilogo[tax_rate]["taxable_amount"] += item.net_amount
 		riepilogo[tax_rate]["tax_amount"] += tax_amount
 		ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = format_float(tax_rate)
+
 		if tax_rate == 0.0 and tax_amount == 0.0:
 			natura =  frappe.db.get_value("Item Tax", {"parent":item.item_code}, "efe_natura")
 			if not natura:

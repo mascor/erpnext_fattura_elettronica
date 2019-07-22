@@ -289,6 +289,7 @@ def make_invoice_body(invoice_data):
 
 	item_description_option = frappe.db.get_value("EFE Settings", "item_description_option", "item_description_option")
 
+	prev_item_code = None # Prevents the tax_amount from being added to the riepilogo twice, in case an item is repeated in the items table. **1
 	for item in invoice.items:
 		dettaglio_linee = ET.SubElement(dati_beni_servizi, 'DettaglioLinee')
 		ET.SubElement(dettaglio_linee, 'NumeroLinea').text = str(item.idx)
@@ -307,7 +308,10 @@ def make_invoice_body(invoice_data):
 		tax_amount = sum([tax.get('tax_amount', 0) for d, tax in itemised_tax.get(item.item_code).items() if d == vat_tax_row.description])
 		riepilogo.setdefault(tax_rate, {"tax_amount": 0.0, "taxable_amount":0.0, "natura": ""})
 		riepilogo[tax_rate]["taxable_amount"] += item.net_amount
-		riepilogo[tax_rate]["tax_amount"] += tax_amount
+		if item.item_code != prev_item_code:
+			riepilogo[tax_rate]["tax_amount"] += tax_amount
+			prev_item_code = item.item_code
+
 		ET.SubElement(dettaglio_linee, 'AliquotaIVA').text = format_float(tax_rate)
 
 		if tax_rate == 0.0 and tax_amount == 0.0:
@@ -493,3 +497,8 @@ def get_ritenuta_data(invoice_name, invoice_total):
 				return out
 
 	return None
+
+# **1
+# If an invoice like 105 has PPlus selected twice, get_itemised_tax will return a tax_amount which is sum(both PPlus item amounts) * 0.22.
+# The loop that calculates riepilogo would add this amount twice, causing an error in the importo totale.
+##

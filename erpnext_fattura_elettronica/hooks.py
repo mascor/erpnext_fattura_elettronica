@@ -135,8 +135,8 @@ doc_events = {
 # }
 
 fixtures = [
-    {   
-        "dt":"Custom Field", 
+    {
+        "dt":"Custom Field",
         "filters": [["name", "in", [
             "Customer Group-efe_is_pa",
             "Customer-efe_first_name",
@@ -168,6 +168,7 @@ fixtures = [
             "Sales Taxes and Charges-efe_natura",
             "Account-efe_natura",
             "Item Tax-efe_natura",
+			"Customer-efe_natura",
             "Territory-efe_cadastral_code",
             "Payment Schedule-efe_mode_of_payment",
             "Payment Schedule-efe_bank_account",
